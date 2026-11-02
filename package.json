@@ -21,9 +21,12 @@
     "test": "npm run test:php && npm run test:ts",
     "test:php": "cd api && vendor/bin/phpunit",
     "test:ts": "vitest run",
-    "typecheck": "tsc --noEmit -p shared && tsc --noEmit -p cli && tsc --noEmit -p web"
+    "typecheck": "tsc --noEmit -p shared && tsc --noEmit -p cli && tsc --noEmit -p web && tsc --noEmit -p e2e",
+    "test:e2e": "playwright test",
+    "test:all": "npm test && npm run test:e2e"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@types/node": "^26.6.6",
     "concurrently": "^10.0.6",
     "tsx": "^4.23.15",
