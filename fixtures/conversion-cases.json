@@ -1,0 +1,21 @@
+{
+  "description": "Conversion-rate test vectors shared by the PHP (PHPUnit) and TypeScript (Vitest) suites. Both implementations must produce identical basisPoints and display strings, which guarantees the web page and the CLI agree (F13). Formula: basisPoints = floor((sales * 10000 * 2 + enquiries) / (enquiries * 2)), i.e. half-up rounding to 0.01%.",
+  "cases": [
+    { "name": "no enquiries is N/A, not 0%", "sales": 0, "enquiries": 0, "basisPoints": null, "display": "N/A" },
+    { "name": "enquiries but no sales", "sales": 0, "enquiries": 10, "basisPoints": 0, "display": "0.00%" },
+    { "name": "one third rounds down", "sales": 1, "enquiries": 3, "basisPoints": 3333, "display": "33.33%" },
+    { "name": "two thirds rounds up", "sales": 2, "enquiries": 3, "basisPoints": 6667, "display": "66.67%" },
+    { "name": "one sixth rounds up", "sales": 1, "enquiries": 6, "basisPoints": 1667, "display": "16.67%" },
+    { "name": "exact value needs no rounding", "sales": 1, "enquiries": 8, "basisPoints": 1250, "display": "12.50%" },
+    { "name": "exact half rounds up (3.125%)", "sales": 1, "enquiries": 32, "basisPoints": 313, "display": "3.13%" },
+    { "name": "float trap: 1.005% must round up (JS toFixed gives 1.00)", "sales": 201, "enquiries": 20000, "basisPoints": 101, "display": "1.01%" },
+    { "name": "smallest value that rounds up to 0.01%", "sales": 1, "enquiries": 20000, "basisPoints": 1, "display": "0.01%" },
+    { "name": "just under the half stays at 0.00%", "sales": 1, "enquiries": 20001, "basisPoints": 0, "display": "0.00%" },
+    { "name": "every enquiry converted", "sales": 5, "enquiries": 5, "basisPoints": 10000, "display": "100.00%" },
+    { "name": "99.9999% rounds to 100.00%", "sales": 999999, "enquiries": 1000000, "basisPoints": 10000, "display": "100.00%" },
+    { "name": "maximum counts", "sales": 1000000, "enquiries": 1000000, "basisPoints": 10000, "display": "100.00%" },
+    { "name": "seed: Northgate Motors June 2026", "sales": 97, "enquiries": 412, "basisPoints": 2354, "display": "23.54%" },
+    { "name": "seed: July 2026 incl. zero-enquiry return", "sales": 117, "enquiries": 529, "basisPoints": 2212, "display": "22.12%" },
+    { "name": "seed: all sample returns", "sales": 497, "enquiries": 2090, "basisPoints": 2378, "display": "23.78%" }
+  ]
+}
