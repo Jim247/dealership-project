@@ -158,7 +158,7 @@ describe('ReturnsPanel', () => {
     );
 
     await screen.findByRole('table');
-    expect(screen.getByText('Showing Northgate Motors only.')).toBeInTheDocument();
+    expect(screen.getByText('Showing returns for Northgate Motors.')).toBeInTheDocument();
     expect(screen.queryByLabelText('Dealership')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Correct/ })).not.toBeInTheDocument();
     expect(screen.getByText(/Totals for All months · Northgate Motors/)).toBeInTheDocument();

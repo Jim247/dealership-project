@@ -226,7 +226,7 @@ test('a dealer only sees, and can only submit for, their own dealership', async 
   await page.getByLabel('Viewing as').selectOption({ label: 'Dealer: Harbour Cars' });
 
   const panel = returnsPanel(page);
-  await expect(panel.getByText('Showing Harbour Cars only.')).toBeVisible();
+  await expect(panel.getByText('Showing returns for Harbour Cars.')).toBeVisible();
   await expectTotals(page, { Returns: '3', 'Total enquiries': '23', 'Total sales': '5', 'Conversion rate': '21.74%' });
   await expect(panel.getByRole('rowheader')).toHaveText(['Harbour Cars', 'Harbour Cars', 'Harbour Cars']);
   await expect(panel.getByRole('button', { name: /^Correct / })).toHaveCount(0);
