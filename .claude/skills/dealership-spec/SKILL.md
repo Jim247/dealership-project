@@ -140,10 +140,14 @@ dealership/
 ├── api/                      PHP API (namespace Debonaire\Api)
 │   ├── public/index.php      front controller: the only web-exposed PHP file
 │   ├── src/
-│   │   ├── Http/             Router, Request, JsonResponse, Cors
-│   │   ├── Controller/       ReturnsController, DealershipsController, HealthController
-│   │   ├── Domain/           ReturnValidator, Month, ReportCalculator, AccessPolicy, Role (enum), Actor
-│   │   └── Persistence/      Database, DealershipRepository, ReturnRepository, AuditRepository, IdempotencyStore
+│   │   ├── App.php           composition root + the ONE place errors map to HTTP status codes
+│   │   ├── Http/             Router, Request, JsonResponse, Cors, MockIdentity, HttpError
+│   │   ├── Controller/       ReturnsController, DealershipsController (thin: HTTP ↔ service)
+│   │   ├── Service/          ReturnService (use cases: list, get, submit, correct, history)
+│   │   ├── Domain/           ReturnValidator, Month, ReportCalculator, AccessPolicy, Role, Actor,
+│   │   │                     Clock (+System/Fixed), value objects, Exception/ (HTTP-agnostic errors)
+│   │   └── Persistence/      Database, DealershipRepository, ReturnRepository, AuditRepository,
+│   │                         IdempotencyStore, Seeder
 │   ├── database/schema.sql   tables + constraints
 │   ├── database/seed.php     idempotent seed script
 │   ├── tests/Unit/           PHPUnit unit tests
@@ -331,9 +335,11 @@ duplicates rows. It writes `created` audit rows too.
 
 ### B7. API contract
 
-Base URL: `http://localhost:8000`. The API accepts and returns JSON only.
-CORS allows `http://localhost:3000`, including the custom headers above, and
-preflight `OPTIONS` returns `204`.
+Base URL: `http://127.0.0.1:8000` (127.0.0.1 rather than `localhost` avoids
+IPv4/IPv6 ambiguity with `php -S`). The API accepts and returns JSON only.
+CORS allows `http://localhost:3000` and `http://127.0.0.1:3000` (override with
+`DEBONAIRE_ALLOWED_ORIGINS`), including the custom headers above, and preflight
+`OPTIONS` returns `204`.
 
 **Error envelope (always this shape):**
 ```json
@@ -368,7 +374,7 @@ update and its audit row commit in **one transaction**.
 ### B8. Node CLI (F12)
 
 ```
-npm run summary -- --from 2026-06 --to 2026-10 [--dealership NGM] [--api http://localhost:8000]
+npm run summary -- --from 2026-06 --to 2026-10 [--dealership NGM] [--api http://127.0.0.1:8000]
 npm run summary -- --month 2026-08
 ```
 
@@ -425,8 +431,9 @@ imagery or copy.
 - **Accessibility:** labelled inputs, `role="alert"` for errors,
   `aria-live="polite"` for the success and loading states, and visible focus.
   Colour is never the only signal.
-- The styling is plain CSS (CSS variables + CSS modules). There is no
-  Tailwind and no UI kit.
+- The styling is plain CSS. Tokens and shared primitives (`.card`, `.btn`,
+  `.field`, `.input`, `.alert`) live in `web/src/app/globals.css`, and
+  component layout lives in CSS modules. There is no Tailwind and no UI kit.
 
 **Page (`/`, single page):**
 1. **Submit a return** card (F10): dealership select (locked to own for
@@ -447,7 +454,7 @@ imagery or copy.
    shows the audit entries.
 
 The browser calls the PHP API directly (`NEXT_PUBLIC_API_URL`, default
-`http://localhost:8000`) from client components.
+`http://127.0.0.1:8000`) from client components.
 
 ### B10. Commenting standard (D17)
 
@@ -549,10 +556,29 @@ free port with a **temp SQLite file** and seeds it fresh per test class.
    accessibility audit, and data retention.
 9. A note that this is a fictional brand inspired by a banking site's look.
 
+### B14a. Rules added during the build (2026-11-02)
+
+These are small decisions made while implementing. Each is enforced in code
+and covered by tests.
+
+- A correction that changes nothing gives `422` (it would only add noise to
+  the audit trail).
+- A non-JSON `Content-Type` on POST/PUT gives `415 unsupported_media_type`. A
+  body over 16 KB gives `413`.
+- `Idempotency-Key` must match `^[A-Za-z0-9_-]{8,128}$`, else `400 invalid_idempotency_key`.
+- Seed rows are audited with `actor_role = 'seed'`.
+- Unexpected exceptions give `500 internal_error` with a generic message. The
+  details go to the server log only.
+- The integration tests freeze the clock with `DEBONAIRE_FIXED_NOW=2026-11-15T12:00:00Z`.
+- The web app remembers the demo identity in `localStorage` (a per-browser
+  convenience only).
+- Toolchain at build time: PHP via Homebrew, PHPUnit 11/12, Node 22,
+  TypeScript 7, Vitest 5, Next.js 16, React 19.
+
 ### B14. Definition of done
 
-- [ ] Every row in the feature register is implemented, commented with its ID and covered by a test.
-- [ ] `npm test` passes from a clean clone after `npm run setup`.
-- [ ] The page totals and the CLI summary agree for at least: all data, 2026-08 (empty), 2026-07 (includes the zero-enquiry return), and a single dealership.
-- [ ] The README covers every item in B13.
-- [ ] The git history reads as a clear story of the build.
+- [x] Every row in the feature register is implemented, commented with its ID and covered by a test.
+- [x] `npm test` passes from a clean clone after `npm run setup`.
+- [x] The page totals and the CLI summary agree for at least: all data, 2026-08 (empty), 2026-07 (includes the zero-enquiry return), and a single dealership.
+- [x] The README covers every item in B13.
+- [x] The git history reads as a clear story of the build.
