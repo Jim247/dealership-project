@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+api/vendor/
+
+# Build output
+.next/
+web/out/
+*.tsbuildinfo
+
+# Local data (SQLite files are created by `npm run setup`)
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+
+# Environment
+.env*
+!.env.example
+
+# Tooling / OS
+.phpunit.cache/
+coverage/
+.DS_Store
+.claude/settings.local.json
