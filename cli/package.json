@@ -1,0 +1,10 @@
+{
+  "name": "@debonaire/cli",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Node.js reporting summary for Debonaire dealership returns.",
+  "type": "module",
+  "dependencies": {
+    "@debonaire/shared": "*"
+  }
+}

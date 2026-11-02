@@ -1,0 +1,40 @@
+{
+    "name": "debonaire/dealership-api",
+    "description": "Debonaire dealership returns API: plain PHP + SQLite (technical exercise).",
+    "type": "project",
+    "license": "proprietary",
+    "require": {
+        "php": ">=8.2",
+        "ext-curl": "*",
+        "ext-json": "*",
+        "ext-pdo": "*",
+        "ext-pdo_sqlite": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11.5 || ^12.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Debonaire\\Api\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Debonaire\\Api\\Tests\\": "tests/"
+        }
+    },
+    "scripts": {
+        "serve": [
+            "Composer\\Config::disableProcessTimeout",
+            "PHP_CLI_SERVER_WORKERS=4 php -S 127.0.0.1:8000 public/index.php"
+        ],
+        "seed": "php database/seed.php",
+        "seed:fresh": "php database/seed.php --fresh",
+        "test": "phpunit",
+        "test:unit": "phpunit --testsuite unit",
+        "test:integration": "phpunit --testsuite integration"
+    },
+    "config": {
+        "sort-packages": true
+    }
+}
