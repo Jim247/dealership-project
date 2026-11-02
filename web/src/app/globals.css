@@ -1,0 +1,294 @@
+/*
+ * Debonaire theme (bible B9).
+ * Banking-site feel: a red brand bar, pill buttons, rounded inputs and pale
+ * blue-grey section bands. The branding is original.
+ */
+
+:root {
+  --brand: #ec0000;
+  --brand-dark: #990000;
+  --brand-tint: #fdeaea;
+  --text: #212529;
+  --text-muted: #6f7779;
+  --band: #eff6f9;
+  --band-strong: #cedee7;
+  --surface: #ffffff;
+  --input-border: #949494;
+  --success: #1e7d5f;
+  --success-tint: #e8f6f1;
+  --warning: #8a5a00;
+  --warning-tint: #fff4dd;
+  --footer: #222222;
+
+  --radius-card: 8px;
+  --radius-pill: 20px;
+  --radius-input: 30px;
+  --shadow-card: 0 4px 8px rgba(0, 0, 0, 0.08);
+  --container: 960px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--font-body), system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 500;
+  line-height: 1.25;
+  margin: 0 0 0.5rem;
+}
+
+h1 {
+  font-size: clamp(1.75rem, 1.2rem + 2vw, 2.5rem);
+}
+
+h2 {
+  font-size: 1.5rem;
+}
+
+a {
+  color: var(--brand-dark);
+}
+
+:focus-visible {
+  outline: 3px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.container {
+  width: 100%;
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ---- Cards ---------------------------------------------------------- */
+
+.card {
+  background: var(--surface);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: clamp(16px, 4vw, 24px);
+}
+
+.card + .card {
+  margin-top: 24px;
+}
+
+.card-intro {
+  color: var(--text-muted);
+  margin: 0 0 1.25rem;
+}
+
+/* ---- Buttons ------------------------------------------------------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: 40px;
+  padding: 6px 20px 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--brand);
+  background: var(--brand);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  background: var(--brand-dark);
+  border-color: var(--brand-dark);
+}
+
+.btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-secondary {
+  background: var(--surface);
+  color: var(--brand);
+}
+
+.btn-secondary:hover {
+  background: var(--brand-tint);
+  color: var(--brand-dark);
+}
+
+.btn-small {
+  min-height: 32px;
+  padding: 3px 14px 5px;
+  font-size: 0.875rem;
+}
+
+.btn-link {
+  border: 0;
+  background: none;
+  color: var(--brand-dark);
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+/* ---- Form fields ---------------------------------------------------- */
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.field label {
+  font-weight: 600;
+}
+
+.field-hint {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  min-height: 40px;
+  padding: 6px 16px;
+  border: 2px solid var(--input-border);
+  border-radius: var(--radius-input);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.textarea {
+  border-radius: 16px;
+  min-height: 88px;
+  resize: vertical;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  border-color: var(--brand);
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(236, 0, 0, 0.2);
+}
+
+.input:disabled,
+.select:disabled {
+  background: var(--band);
+  border-color: var(--band-strong);
+  color: var(--text);
+  opacity: 1;
+}
+
+.input[aria-invalid='true'],
+.select[aria-invalid='true'],
+.textarea[aria-invalid='true'] {
+  border-color: var(--brand);
+}
+
+.field-error {
+  color: var(--brand-dark);
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.field-error::before {
+  content: '! ';
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px 20px;
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  margin-top: 20px;
+}
+
+/* ---- Alerts --------------------------------------------------------- */
+
+.alert {
+  border-radius: var(--radius-card);
+  padding: 12px 16px;
+  margin: 0 0 16px;
+  border-left: 4px solid currentColor;
+}
+
+.alert p {
+  margin: 0;
+}
+
+.alert p + p {
+  margin-top: 4px;
+}
+
+.alert-success {
+  background: var(--success-tint);
+  color: var(--success);
+}
+
+.alert-error {
+  background: var(--brand-tint);
+  color: var(--brand-dark);
+}
+
+.alert-warning {
+  background: var(--warning-tint);
+  color: var(--warning);
+}
+
+.alert strong {
+  display: block;
+}
+
+/* ---- Page bands ------------------------------------------------------ */
+
+.band {
+  background: var(--band);
+  padding: 32px 0;
+}
+
+.page-main {
+  padding: 32px 0 48px;
+}

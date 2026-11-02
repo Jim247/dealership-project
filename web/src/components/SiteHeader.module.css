@@ -1,0 +1,52 @@
+.topBand {
+  background: var(--brand);
+  color: #fff;
+}
+
+.topBandInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  min-height: 52px;
+  padding-top: 6px;
+  padding-bottom: 6px;
+}
+
+.segment {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.mainHeader {
+  background: var(--surface);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.mainHeaderInner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 24px;
+  min-height: 72px;
+}
+
+.brand {
+  color: var(--brand);
+  text-decoration: none;
+}
+
+.navLink {
+  display: inline-block;
+  padding: 24px 0 20px;
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 600;
+  border-bottom: 4px solid transparent;
+}
+
+.navLink[aria-current='page'] {
+  border-bottom-color: var(--brand);
+}

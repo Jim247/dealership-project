@@ -1,0 +1,34 @@
+.switcher {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.label {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.demoTag {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.select {
+  min-height: 34px;
+  padding: 4px 14px;
+  border-radius: var(--radius-input);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  background: #fff;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  max-width: 100%;
+}
