@@ -40,6 +40,15 @@ npm test                                                  # PHP suite, then all 
 npm run seed:fresh                                        # reset the data to the seed
 ```
 
+End-to-end tests drive a real browser against the real API. They start their
+own servers on ports 8100 and 3100 with a separate database, so they can run
+while `npm run dev` is up:
+
+```bash
+npx playwright install chromium    # once, before the first run
+npm run test:e2e                   # or `npm run test:all` for every suite
+```
+
 The CLI exits `0` on success, `1` for API errors, `2` for invalid arguments
 and `3` when the API's totals do not match its own rows.
 
@@ -125,7 +134,8 @@ transactions and constraints:
 **Duplicate or concurrent submission.** The `UNIQUE` constraint plus a check
 inside `BEGIN IMMEDIATE` means two simultaneous requests for the same
 dealership and month give exactly one `201` and one `409`. The integration
-suite fires 10 at once to prove it. The 409 names the dealership, the month
+suite fires 10 at once to prove it, and an end-to-end test drops a real
+response mid-flight to check that the retry creates nothing new. The 409 names the dealership, the month
 and the original submission date, and points to the correction route. For a
 **lost response**, the form sends an `Idempotency-Key` per attempt and reuses
 it on retry. The API then replays the original `201`
@@ -164,12 +174,12 @@ session or SSO token, and `AccessPolicy` would not change.
 | Shared (Vitest) | `npm run test:ts` | Rate vectors (same file as PHP), formatting, month helpers, API client |
 | CLI (Vitest) | (same) | Argument parsing, output format, empty period, mismatch → exit 3, API down → exit 1 |
 | Web (Vitest + Testing Library) | (same) | Form success / 422 / 409 feedback, double-click guard, idempotency-key reuse on retry, dealer lock, table loading / empty / error + retry, refresh after submit, filters, manager-only actions, correction dialog, history |
+| End-to-end (Playwright) | `npm run test:e2e` | Real Chromium against a production build, the real PHP API and its own SQLite file (reset before each test): submit and refresh, field errors, the duplicate message, a lost response retried without a duplicate, a browser bypassing the form, empty and zero-enquiry months, **page vs CLI figures for five filters**, a manager correction and its history, dealer scope, a failed request and retry |
 
 ## Unfinished work
 
-- **No browser end-to-end tests** (e.g. Playwright). The UI is covered by
-  component tests against a mocked client, and the API by real HTTP tests, but
-  no automated test drives the real page against the real API.
+- **End-to-end tests run in Chromium only.** Firefox and WebKit projects
+  would be a one-line addition to `playwright.config.ts` each.
 - **Idempotency keys never expire.** They should be pruned after ~24 h.
 - **No pagination** on `GET /api/returns`. That is fine for the sample volume
   but needed for years of data.

@@ -527,6 +527,23 @@ free port with a **temp SQLite file** and seeds it fresh per test class.
   the submit button is disabled while pending. The table shows the loading,
   empty and error + retry states, and the totals show `N/A` for zero enquiries.
 
+**End-to-end (Playwright, added after the main build at James's request):**
+`npm run test:e2e` starts its own PHP API (port 8100) and a production
+Next.js build (port 3100, built into `.next-e2e`) with its own SQLite file
+(`api/var/e2e.sqlite`, reset before each test), so it never touches the dev
+servers or dev data. It covers:
+- submit and refresh, field errors, and the duplicate message;
+- a lost response retried without a duplicate (`route.fetch` then `abort`);
+- a browser bypassing the form;
+- empty and zero-enquiry months;
+- page vs CLI figures for five filters;
+- a manager correction and its history;
+- dealer scope, and a failed request with retry.
+
+Tests scope alerts to their card, because Next.js adds a page-level
+`role="alert"` route announcer. It is kept out of `npm test` so that suite
+stays fast; `npm run test:all` runs everything.
+
 ### B12. Git conventions (D12, D13)
 
 - Conventional Commits: `feat(api): …`, `fix(web): …`, `test(api): …`,

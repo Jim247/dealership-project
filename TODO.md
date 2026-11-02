@@ -63,3 +63,8 @@ Tick items off as they land, and keep commits aligned with these steps (B12).
 - [x] README with every section in B13
 - [x] Manual check against the real PHP API: page totals and CLI agree for all data, 2026-08, 2026-07, a single dealership, and after a correction (B14)
 - [x] Final `npm test` (PHP + TypeScript) green, and a tidy git log
+
+## Phase 9: End-to-end tests (added after handover)
+- [x] Playwright config with isolated servers (API :8100, web :3100 in `.next-e2e`) and its own database, reset before each test
+- [x] Journeys: submit/refresh, field errors, duplicate, lost-response retry, form bypass, empty and zero-enquiry months, page = CLI, correction + history, dealer scope, failed request + retry
+- [x] 11 tests green, stable over repeated runs. README and bible updated
