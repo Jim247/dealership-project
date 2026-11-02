@@ -59,7 +59,7 @@ export function ReturnsPanel({ client, identity, dealerships, refreshKey, onChan
       <p className="card-intro">
         {isManager
           ? 'Every dealership’s returns. Filter by period or dealership.'
-          : `Showing ${nameOf(identity.dealershipId)} only.`}
+          : `Showin returns for ${nameOf(identity.dealershipId)}.`}
       </p>
 
       <form className={styles.filters} onSubmit={(e) => e.preventDefault()} aria-label="Filter returns">
