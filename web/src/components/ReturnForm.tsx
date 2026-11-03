@@ -132,7 +132,7 @@ export function ReturnForm({ client, identity, dealerships, onSubmitted, now = (
     <section className="card" aria-labelledby="submit-heading">
       <h2 id="submit-heading">Submit a return</h2>
       <p className="card-intro">
-        Record this month&apos;s enquiries and completed sales.
+        Record a month&apos;s enquiries and completed sales.
       </p>
 
       {feedback && (
