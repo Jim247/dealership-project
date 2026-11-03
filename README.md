@@ -7,7 +7,7 @@ command-line script prints the same summary.
 
 | Part | Tech | Folder |
 |---|---|---|
-| API: save, retrieve, validate, totals | PHP 8.2+ (no framework), SQLite via PDO | [`api/`](api) |
+| API: save, retrieve, validate, totals | PHP 8.3+ (no framework), SQLite via PDO | [`api/`](api) |
 | Data entry + reporting UI | Next.js (App Router), React, TypeScript | [`web/`](web) |
 | Reporting summary CLI | Node.js, TypeScript (run with `tsx`) | [`cli/`](cli) |
 | Shared types, API client, rate formula | TypeScript | [`shared/`](shared) |
@@ -21,8 +21,10 @@ command-line script prints the same summary.
 
 ## Run it
 
-**Prerequisites:** PHP 8.2+ with `pdo_sqlite` and `curl` (e.g. `brew install php`),
-Composer, and Node.js 20+.
+**Prerequisites:** PHP 8.3+ with `pdo_sqlite` and `curl` (e.g. `brew install php`),
+Composer, and Node.js 22.12+ (or 24+). The test tools set these minimums:
+PHPUnit 12 needs PHP 8.3 and Vitest 5 needs Node 22.12. Tested on PHP 8.5
+and Node 22.13.
 
 ```bash
 npm run setup      # npm install, composer install, create + seed the SQLite DB

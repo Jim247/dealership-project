@@ -8,7 +8,7 @@
     "web"
   ],
   "engines": {
-    "node": ">=20"
+    "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
   },
   "scripts": {
     "setup": "npm install && composer install --working-dir=api && npm run seed",

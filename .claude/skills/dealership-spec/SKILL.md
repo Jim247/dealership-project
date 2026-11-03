@@ -591,6 +591,9 @@ and covered by tests.
   convenience only).
 - Toolchain at build time: PHP via Homebrew, PHPUnit 11/12, Node 22,
   TypeScript 7, Vitest 5, Next.js 16, React 19.
+- Minimum versions (2026-11-03): PHP 8.3, because the locked PHPUnit 12
+  needs it, and Node 22.12 or 24+, because Vitest 5 needs it. `composer.json`,
+  the root `package.json` `engines` field and the README all state these.
 
 ### B14. Definition of done
 
