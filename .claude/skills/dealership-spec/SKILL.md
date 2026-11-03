@@ -594,6 +594,11 @@ and covered by tests.
 - Minimum versions (2026-11-03): PHP 8.3, because the locked PHPUnit 12
   needs it, and Node 22.12 or 24+, because Vitest 5 needs it. `composer.json`,
   the root `package.json` `engines` field and the README all state these.
+- PHP must be a release with the October 2026 "PHP2Shell" fixes
+  (CVE-2026-109618, CVE-2026-109619): 8.3.36, 8.4.27, 8.5.12 or later.
+  `composer.json` requires `~8.3.36 || ~8.4.27 || ~8.5.12 || >=8.6`. The
+  README carries a security warning, plus a before-production item on keeping
+  PHP patched.
 
 ### B14. Definition of done
 

@@ -23,8 +23,25 @@ command-line script prints the same summary.
 
 **Prerequisites:** PHP 8.3+ with `pdo_sqlite` and `curl` (e.g. `brew install php`),
 Composer, and Node.js 22.12+ (or 24+). The test tools set these minimums:
-PHPUnit 12 needs PHP 8.3 and Vitest 5 needs Node 22.12. Tested on PHP 8.5
+PHPUnit 12 needs PHP 8.3 and Vitest 5 needs Node 22.12. Tested on PHP 8.5.12
 and Node 22.13.
+
+> **Security warning: use a patched PHP.** In October 2026 PHP fixed two
+> critical remote-code-execution flaws, known as "PHP2Shell"
+> ([CVE-2026-109618](https://github.com/php/php-src/security/advisories/GHSA-w8hw-w9fx-j79w)
+> and [CVE-2026-109619](https://github.com/php/php-src/security/advisories/GHSA-6wmf-4rv5-p3rp)),
+> which were being exploited in the wild. Every PHP version released before
+> 21 October 2026 is affected. Use **8.3.36, 8.4.27, 8.5.12 or later**, and
+> check yours with `php -v`.
+>
+> `composer.json` requires one of those releases. Composer therefore refuses
+> to update dependencies on an unpatched PHP, and the API, seed script and
+> tests refuse to start on anything older than 8.3.36. Those checks cannot
+> catch an older 8.4 or 8.5 release (8.5.11, for example), so `php -v` is the
+> real test. Updating is the only complete fix, because no configuration
+> setting fully protects an older version. This project's dev server only
+> listens on `127.0.0.1`, which limits the exposure, but an unpatched PHP is
+> still unsafe to keep on any machine.
 
 ```bash
 npm run setup      # npm install, composer install, create + seed the SQLite DB
@@ -209,6 +226,11 @@ session or SSO token, and `AccessPolicy` would not change.
 7. **An accessibility audit** (WCAG 2.2 AA) and a proper design-system review.
 8. **Run the API under PHP-FPM** behind nginx (or similar), not the
    built-in dev server.
+9. **Keep PHP patched.** Start on a release with the October 2026
+   "PHP2Shell" fixes (8.3.36, 8.4.27, 8.5.12 or later), subscribe to PHP's
+   security announcements, and have a tested way to roll out an emergency PHP
+   update within hours. In that incident, governments told site owners to
+   take sites offline until they had patched.
 
 ---
 
