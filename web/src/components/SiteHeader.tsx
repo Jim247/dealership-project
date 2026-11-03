@@ -14,7 +14,7 @@ export function SiteHeader() {
     <header>
       <div className={styles.topBand}>
         <div className={`container ${styles.topBandInner}`}>
-          <span className={styles.segment}>Business · Dealer MI</span>
+          <span className={styles.segment}>Business · Dealer Dashboard</span>
           <RoleSwitcher />
         </div>
       </div>
