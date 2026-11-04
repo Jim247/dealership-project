@@ -1,3 +1,61 @@
+# Message from James
+
+Hello Alex and the team, the following will be my own commentary on the project. 
+
+I approached the task by creating a skills file containing a .md transcription of the task along with my own notes on which tech to use from my point of view. I then asked Claude to recommend a PHP framework, or whether to use a framework as this was a missing part in my knowledge. It recommended plain PHP over Laravel, which I agreed with once I'd reviewed some pros and cons. 
+
+I took Claude's recommendations too on the structure of the PHP API and functions with the edge cases in mind.
+
+The decisions on how the app should behave were mine though. I chose to show N/A rather than 0% when a dealership has no enquiries, to split users into dealers and managers with only managers able to correct a return, and to build all four of the edge cases rather than just describing them. I also reworded some of the text on the page myself. Once it was built, I had Claude run through each edge case in the browser with me, checking the feedback the user actually sees, which turned up a couple of issues I've listed below. 
+
+I know the visuals are not being marked, but I couldn't resist creating a UI similar to the bank you showed me, and it wasn't costly in the design process, I simply asked Claude to visit their website and create something similar. I think it hopefully shows some care and attention to the task, by the way, the naming is all me!
+
+I am aware of some shortcomings in the project which will be documented in greater detail below, but I wanted to point these out in my own words.
+
+
+- I did run a little over the allotted 2 hours, especially spending time looking at the PHP and edge cases, creating some bespoke learning docs for myself. I wanted to learn something in the process as well as completing the task. The front end styling was not a factor in this. 
+
+- Checking the edge cases in the browser, I found two places where the feedback isn't quite right. If a return saves but the response is lost, and the user changes a figure before retrying, the duplicate message tells them to use 'Correct' on a row that isn't in the table yet, as the table hasn't refreshed. And if the API goes down and comes back, 'Try again' reloads the table but not the dealership dropdowns, so the user can't submit until they reload the page. Both are small fixes, but I've left them as they are for now.
+
+# To make this scalable/general improvements...
+
+I won't add everything here mentioned below in the main body, but some of the more important things from my perspective...
+
+- Idempotency keys never expire. I would have liked to implement a 24 hour expiry on these. This could be done by a simple cron job run on the cloud, or even more simply by deleting any keys older than 24 hours each time a return is submitted, as SQLite doesn't have a scheduler of its own.
+
+- A proper authentication system, ideally with 2FA via a managed service. This would then integrate with the current role based system to control access and CRUD permissions in the app.
+
+- An 'escalate to manager' workflow for dealers to request a correction, which would then be actioned by a manager. This would close the loop on the current system where dealers are told to contact a manager.
+
+- Leaderboard/ filtering by success rate, which would be a nice to have for managers to see how dealerships are performing against each other, filtering and sorting by success rate, date range, etc.
+
+- The ability for managers to void a return, marking it as removed rather than deleting it outright, so it would still be audited and logged. This would be useful for removing test data or incorrect submissions, and in a regulated setting it's safer to keep the history than to truly delete it.
+
+- The page already adjusts to a phone screen, but a properly mobile-first front end (or an app) would be a 'nice to have' for dealers to submit returns on the go.
+
+- PostgreSQL or MySQL database with versioned migrations, backups and point-in-time recovery. The current version of SQLite is fine for the small scale of this project, but would not be suitable for a production environment due to limitations on concurrent writes.
+
+- The app would need to be deployed on a server with HTTPS. There is already a CORS allowlist and some basic security headers, but these would need tightening up for each environment. 
+
+- A more polished or professionally designed front end, with a proper design system and accessibility considerations where appropriate. 
+
+- Pagination on the return endpoints to reduce the amount of data being sent to the client and improve performance.
+
+- Rate limiting on the API. 
+
+- Better live feedback on input validation. The form already checks things like a future month before sending anything, but only when you press Submit, it would be nicer to show errors as you type or move between fields. 
+
+- CI pipeline, running the test suite on every deployment, and ideally a test against a deployed environment.
+
+- If the app were under very heavy and frequent use, a caching layer, queuing and load balancing would be required to deliver a consistent service.
+
+- If the app were used by an international company, with managers viewing data from dealerships in different countries, then dealing with timezones and localisation would be a requirement. At the moment the reporting month is judged in UK time.
+
+- In a regulated sector, retention policies may be required for this data, especially if it came to include more personal data. Every submission and correction is already audit logged, but there would need to be a proper data retention policy for the data in the database, and considerations as to where the data is stored so as to be in line with local regulations e.g. GDPR.
+
+
+# AI Notes start here ↓
+
 # Debonaire: dealership reporting
 
 A small dealership data-entry and reporting workflow for the fictional brand
@@ -105,6 +163,97 @@ identity gives `401`.
 
 ```bash
 curl -s -H 'X-Debonaire-Role: manager' 'http://127.0.0.1:8000/api/returns?from=2026-07&to=2026-07'
+```
+
+### Trying the API with curl
+
+These examples need `npm run dev` running and the sample data loaded. Some of
+them change the data, so run `npm run seed:fresh` afterwards to put it back.
+`-i` shows the status code and headers as well as the body, and piping the
+output into `jq` makes the JSON easier to read, if you have it installed.
+
+**Reading data**
+
+```bash
+# Is the API up? This is the only endpoint that needs no identity.
+curl -s http://127.0.0.1:8000/api/health
+
+# Every dealership, as a manager
+curl -s -H 'X-Debonaire-Role: manager' http://127.0.0.1:8000/api/dealerships
+
+# Returns for June to September, with the server's totals for exactly those rows
+curl -s -H 'X-Debonaire-Role: manager' 'http://127.0.0.1:8000/api/returns?from=2026-06&to=2026-09'
+
+# The same request as a Harbour Cars dealer: the filter is forced to their own dealership
+curl -s -H 'X-Debonaire-Role: dealer' -H 'X-Debonaire-Dealership: HBC' 'http://127.0.0.1:8000/api/returns?from=2026-06&to=2026-09'
+
+# August 2026 has no returns: zero totals and a null rate (shown as N/A)
+curl -s -H 'X-Debonaire-Role: manager' 'http://127.0.0.1:8000/api/returns?from=2026-08&to=2026-08'
+
+# One return by id
+curl -s -H 'X-Debonaire-Role: manager' http://127.0.0.1:8000/api/returns/1
+```
+
+**Submitting a return, retrying it, and submitting it twice**
+
+```bash
+# Save Riverside Autos' October return: 201 Created, with a Location header
+curl -si -X POST http://127.0.0.1:8000/api/returns \
+  -H 'X-Debonaire-Role: manager' -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: readme-example-0001' \
+  -d '{"dealershipId":"RVA","month":"2026-10","enquiries":131,"sales":27}'
+
+# A retry after a lost response: the same key replays the original 201 with
+# "Idempotent-Replayed: true", and nothing new is saved
+curl -si -X POST http://127.0.0.1:8000/api/returns \
+  -H 'X-Debonaire-Role: manager' -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: readme-example-0001' \
+  -d '{"dealershipId":"RVA","month":"2026-10","enquiries":131,"sales":27}'
+
+# A second return for the same dealership and month: 409 duplicate_return
+curl -s -X POST http://127.0.0.1:8000/api/returns \
+  -H 'X-Debonaire-Role: manager' -H 'Content-Type: application/json' \
+  -d '{"dealershipId":"RVA","month":"2026-10","enquiries":140,"sales":30}'
+```
+
+**Requests the API refuses**
+
+```bash
+# No identity headers: 401 missing_identity
+curl -s http://127.0.0.1:8000/api/returns
+
+# Bad figures plus a client-calculated total: 422, with a message for each field
+curl -s -X POST http://127.0.0.1:8000/api/returns \
+  -H 'X-Debonaire-Role: manager' -H 'Content-Type: application/json' \
+  -d '{"dealershipId":"HBC","month":"2026-13","enquiries":5,"sales":9,"totals":{"totalSales":999}}'
+
+# A dealer submitting for another dealership: 403 forbidden
+curl -s -X POST http://127.0.0.1:8000/api/returns \
+  -H 'X-Debonaire-Role: dealer' -H 'X-Debonaire-Dealership: HBC' -H 'Content-Type: application/json' \
+  -d '{"dealershipId":"NGM","month":"2026-05","enquiries":10,"sales":2}'
+
+# A dealer asking for another dealership's returns: 403 forbidden
+curl -s -H 'X-Debonaire-Role: dealer' -H 'X-Debonaire-Dealership: HBC' 'http://127.0.0.1:8000/api/returns?dealershipId=NGM'
+
+# A method the endpoint doesn't support: 405, with an Allow header
+curl -si -X DELETE -H 'X-Debonaire-Role: manager' http://127.0.0.1:8000/api/returns/1
+```
+
+**Corrections and history (managers only)**
+
+```bash
+# Correct Harbour Cars' June return (id 8 in the sample data), giving a reason
+curl -s -X PUT http://127.0.0.1:8000/api/returns/8 \
+  -H 'X-Debonaire-Role: manager' -H 'Content-Type: application/json' \
+  -d '{"enquiries":16,"sales":4,"reason":"Two web enquiries were missed in the CRM export"}'
+
+# Its history: the original submission, then the correction with before, after and reason
+curl -s -H 'X-Debonaire-Role: manager' http://127.0.0.1:8000/api/returns/8/audit
+
+# A dealer trying to correct it: 403, because only managers can correct
+curl -s -X PUT http://127.0.0.1:8000/api/returns/8 \
+  -H 'X-Debonaire-Role: dealer' -H 'X-Debonaire-Dealership: HBC' -H 'Content-Type: application/json' \
+  -d '{"enquiries":20,"sales":5,"reason":"Trying to change our own figures"}'
 ```
 
 ## Business rules and assumptions
