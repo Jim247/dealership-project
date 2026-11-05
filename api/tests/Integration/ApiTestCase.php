@@ -48,12 +48,18 @@ abstract class ApiTestCase extends TestCase
             'DEBONAIRE_FIXED_NOW' => self::FIXED_NOW,
             'DEBONAIRE_ALLOWED_ORIGINS' => self::UI_ORIGIN,
             // Several workers, so the concurrency test really runs requests in parallel.
+            // Windows has no workers and runs one process, so there the requests queue
+            // up instead. The test still holds: exactly one of them can succeed.
             'PHP_CLI_SERVER_WORKERS' => '4',
         ];
+        if (PHP_OS_FAMILY === 'Windows') {
+            // Windows needs these to start PHP, and they are dropped when $env is given.
+            $env += ['SystemRoot' => (string) getenv('SystemRoot'), 'TEMP' => sys_get_temp_dir()];
+        }
 
         $process = proc_open(
             [PHP_BINARY, '-S', '127.0.0.1:' . $port, $apiRoot . '/public/index.php'],
-            [0 => ['pipe', 'r'], 1 => ['file', '/dev/null', 'w'], 2 => ['file', self::$tmpDir . '/server.log', 'w']],
+            [0 => ['pipe', 'r'], 1 => ['file', self::nullDevice(), 'w'], 2 => ['file', self::$tmpDir . '/server.log', 'w']],
             $pipes,
             $apiRoot,
             $env,
@@ -70,9 +76,11 @@ abstract class ApiTestCase extends TestCase
     public static function tearDownAfterClass(): void
     {
         if (is_resource(self::$server)) {
-            $pid = proc_get_status(self::$server)['pid'];
-            // The built-in server forks worker processes, so stop the children as well as the parent.
-            exec(sprintf('pkill -TERM -P %d 2>/dev/null', $pid));
+            if (PHP_OS_FAMILY !== 'Windows') {
+                $pid = proc_get_status(self::$server)['pid'];
+                // The built-in server forks worker processes, so stop the children as well as the parent.
+                exec(sprintf('pkill -TERM -P %d 2>/dev/null', $pid));
+            }
             proc_terminate(self::$server);
             proc_close(self::$server);
             self::$server = null;
@@ -261,6 +269,14 @@ abstract class ApiTestCase extends TestCase
         fclose($socket);
 
         return (int) substr($name, strrpos($name, ':') + 1);
+    }
+
+    /**
+     * Where to discard the server's output: NUL on Windows, /dev/null elsewhere.
+     */
+    private static function nullDevice(): string
+    {
+        return PHP_OS_FAMILY === 'Windows' ? 'NUL' : '/dev/null';
     }
 
     private static function waitUntilHealthy(): void

@@ -599,6 +599,14 @@ and covered by tests.
   `composer.json` requires `~8.3.36 || ~8.4.27 || ~8.5.12 || >=8.6`. The
   README carries a security warning, plus a before-production item on keeping
   PHP patched.
+- Scripts must run on macOS and Windows (2026-11-05). `npm run dev:api` runs
+  `composer --working-dir=api serve`, which sets `PHP_CLI_SERVER_WORKERS=4`
+  with Composer's cross-platform `@putenv` (Windows has no workers and runs one
+  process). `npm run test:php` runs `php vendor/bin/phpunit`. The integration
+  tests write to `NUL` and skip `pkill` on Windows, and the e2e suite starts
+  the CLI with `node --import tsx` rather than `npm`. `composer.json` requires
+  `ext-mbstring`. The README has install and update steps for both systems;
+  the Windows steps have not been run on Windows.
 
 ### B14. Definition of done
 

@@ -7,6 +7,7 @@
         "php": "~8.3.36 || ~8.4.27 || ~8.5.12 || >=8.6",
         "ext-curl": "*",
         "ext-json": "*",
+        "ext-mbstring": "*",
         "ext-pdo": "*",
         "ext-pdo_sqlite": "*"
     },
@@ -26,13 +27,17 @@
     "scripts": {
         "serve": [
             "Composer\\Config::disableProcessTimeout",
-            "PHP_CLI_SERVER_WORKERS=4 php -S 127.0.0.1:8000 public/index.php"
+            "@putenv PHP_CLI_SERVER_WORKERS=4",
+            "php -S 127.0.0.1:8000 public/index.php"
         ],
         "seed": "php database/seed.php",
         "seed:fresh": "php database/seed.php --fresh",
         "test": "phpunit",
         "test:unit": "phpunit --testsuite unit",
         "test:integration": "phpunit --testsuite integration"
+    },
+    "scripts-descriptions": {
+        "serve": "Runs the API on http://127.0.0.1:8000. @putenv sets the worker count on every OS; macOS and Linux then run 4 workers, Windows runs one (PHP has no workers there)."
     },
     "config": {
         "sort-packages": true

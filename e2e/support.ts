@@ -66,9 +66,14 @@ export async function readTotals(page: Page, caption: string): Promise<Figures> 
   return Object.fromEntries(labels.map((label, i) => [label, values[i]?.trim() ?? ''])) as Figures;
 }
 
-/** Runs the real Node CLI against the e2e API and returns its four figures. */
+/**
+ * Runs the real Node CLI against the e2e API and returns its four figures.
+ *
+ * It starts Node directly with tsx, the same as `npm run summary`, because on
+ * Windows `npm` is a .cmd file that execFileSync cannot start without a shell.
+ */
 export function runSummary(args: string[]): Figures {
-  const output = execFileSync('npm', ['run', 'summary', '--silent', '--', ...args, '--api', API_URL], {
+  const output = execFileSync(process.execPath, ['--import', 'tsx', 'cli/src/main.ts', ...args, '--api', API_URL], {
     cwd: ROOT,
     encoding: 'utf8',
   });

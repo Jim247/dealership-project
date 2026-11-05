@@ -77,12 +77,22 @@ command-line script prints the same summary.
                                  └─ computes totals + conversion rate (single source of truth)
 ```
 
-## Run it
+## Install and run
 
-**Prerequisites:** PHP 8.3+ with `pdo_sqlite` and `curl` (e.g. `brew install php`),
-Composer, and Node.js 22.12+ (or 24+). The test tools set these minimums:
-PHPUnit 12 needs PHP 8.3 and Vitest 5 needs Node 22.12. Tested on PHP 8.5.12
-and Node 22.13.
+### What you need
+
+| Tool | Version | Used for |
+|---|---|---|
+| PHP | **8.3.36, 8.4.27, 8.5.12 or later**, with the `curl`, `mbstring`, `openssl`, `pdo_sqlite` and `zip` extensions | The API, the seed script and the PHP tests |
+| Composer | 2.x | PHP packages (PHPUnit) and the autoloader |
+| Node.js | 22.12 or later (24 or 26 are fine) | The page, the summary script and the TypeScript tests |
+| Git | any recent version | Getting the code (not needed if you were sent a zip) |
+
+The minimums come from the test tools: PHPUnit 12 needs PHP 8.3 and Vitest 5
+needs Node 22.12. The PHP patch versions come from the security fix below.
+Everything was built and tested on macOS with PHP 8.5.12 and Node 22.13. The
+Windows steps follow the standard PHP for Windows set-up, and the npm scripts
+are written to work there, but they have not been run on a Windows machine.
 
 > **Security warning: use a patched PHP.** In October 2026 PHP fixed two
 > critical remote-code-execution flaws, known as "PHP2Shell"
@@ -100,6 +110,111 @@ and Node 22.13.
 > setting fully protects an older version. This project's dev server only
 > listens on `127.0.0.1`, which limits the exposure, but an unpatched PHP is
 > still unsafe to keep on any machine.
+
+### Installing the tools on macOS
+
+1. Install Homebrew, the Mac package manager, by following the one-line
+   instructions at <https://brew.sh>.
+2. Update Homebrew's package list, then install the tools:
+
+   ```bash
+   brew update
+   brew install php composer node git
+   ```
+
+   If Homebrew stops with a message about the Xcode licence, accept it with
+   `sudo xcodebuild -license accept` and run the install again.
+3. Open a new terminal window and check the versions. Homebrew's PHP already
+   includes every extension the project needs, and the last command should
+   list all five:
+
+   ```bash
+   php -v
+   composer -V
+   node -v
+   php -m | grep -Ei '^(curl|mbstring|openssl|pdo_sqlite|zip)$'
+   ```
+
+**Keeping them up to date on macOS:**
+
+```bash
+brew update
+brew upgrade php composer node git
+```
+
+Run `php -v` afterwards to check you are on a patched release.
+
+### Installing the tools on Windows 10 or 11
+
+Use **PowerShell**. The `winget` package manager is built into Windows 11 and
+recent versions of Windows 10.
+
+1. Install Git, PHP 8.5 and the current long-term-support version of Node.js:
+
+   ```powershell
+   winget install --id Git.Git -e
+   winget install --id PHP.PHP.8.5 -e
+   winget install --id OpenJS.NodeJS.LTS -e
+   ```
+
+   Close PowerShell and open a new window, so it picks up the new programs,
+   then check `php -v` and `node -v`.
+2. Switch on PHP's extensions. PHP for Windows comes without a `php.ini`
+   settings file, and most extensions are off until one switches them on.
+   These commands copy PHP's own development template next to `php.exe` and
+   switch on the five extensions the project needs:
+
+   ```powershell
+   $phpDir = Split-Path (Get-Command php).Source
+   Copy-Item "$phpDir\php.ini-development" "$phpDir\php.ini"
+   $ini = Get-Content "$phpDir\php.ini"
+   $ini = $ini -replace '^;extension_dir = "ext"', "extension_dir = `"$phpDir\ext`""
+   $ini = $ini -replace '^;extension=(curl|mbstring|openssl|pdo_sqlite|zip)$', 'extension=$1'
+   Set-Content "$phpDir\php.ini" $ini
+   php -m
+   ```
+
+   `php -m` should now list `curl`, `mbstring`, `openssl`, `pdo_sqlite` and
+   `zip`. The `Copy-Item` line replaces any existing `php.ini` in that folder.
+   If you already have one you have customised, skip that line and edit your
+   own file instead. `php --ini` shows which file PHP is loading.
+3. Install Composer by downloading and running the official installer,
+   <https://getcomposer.org/Composer-Setup.exe>. It finds `php.exe` and adds
+   `composer` to your PATH. Open a new PowerShell window and check
+   `composer -V`.
+4. If PowerShell refuses to run `npm` with "running scripts is disabled on
+   this system", allow scripts you run yourself for your own user account:
+
+   ```powershell
+   Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+   ```
+
+**Keeping them up to date on Windows:**
+
+```powershell
+winget upgrade --id PHP.PHP.8.5 -e
+winget upgrade --id OpenJS.NodeJS.LTS -e
+winget upgrade --id Git.Git -e
+composer self-update
+```
+
+After upgrading PHP, run `php -v` to check you are on a patched release, and
+`php -m` to check the five extensions are still listed. If they are not,
+repeat step 2. `PHP.PHP.8.5` only moves between 8.5 releases; a later PHP
+version, such as 8.6, is a separate winget package.
+
+**Two differences on Windows:**
+
+- PHP's built-in server cannot run several worker processes on Windows, so
+  the API handles one request at a time there. Everything works, just not in
+  parallel.
+- If `npm run seed:fresh` cannot delete the database file, stop `npm run dev`
+  first. Windows will not delete a file that another program has open.
+
+### Getting the code and running it (both systems)
+
+Clone the repository, or unzip the copy you were sent, then open a terminal in
+its folder and run:
 
 ```bash
 npm run setup      # npm install, composer install, create + seed the SQLite DB
@@ -128,6 +243,41 @@ npm run test:e2e                   # or `npm run test:all` for every suite
 
 The CLI exits `0` on success, `1` for API errors, `2` for invalid arguments
 and `3` when the API's totals do not match its own rows.
+
+### Keeping the project's packages up to date
+
+`package-lock.json` and `api/composer.lock` pin the exact version of every
+JavaScript and PHP package, so `npm run setup` installs exactly what was
+tested. To see what is out of date, check for security advisories, and take
+newer versions:
+
+```bash
+npm outdated                          # JavaScript packages with newer versions
+composer outdated --working-dir=api   # PHP packages with newer versions
+npm audit                             # known security problems, JavaScript
+composer audit --working-dir=api      # known security problems, PHP
+npm update                            # newer versions within the ranges in package.json
+composer update --working-dir=api     # the same for PHP, within composer.json
+npx playwright install chromium       # the browser must match the Playwright version
+npm test && npm run test:e2e          # check nothing broke
+```
+
+`npm update` and `composer update` stay within the version ranges in
+`package.json` and `api/composer.json`, so they never jump a major version. A
+major upgrade means changing the range on purpose, for example with
+`npm install next@latest --workspace web`, and then running the tests. Commit
+the updated lock files afterwards, so everyone gets the same versions.
+
+### If something goes wrong
+
+| Problem | What to do |
+|---|---|
+| Composer says your PHP version does not satisfy the requirement | Your PHP is unpatched or too old. Update it (see above) and check `php -v`. |
+| Composer says an `ext-…` extension is missing | On Windows, repeat step 2 of the Windows install. On a Mac, reinstall PHP with `brew reinstall php`. |
+| npm warns `EBADENGINE` | Your Node.js is older than 22.12. Update it (see above). |
+| `npm run dev` says port 8000 or 3000 is already in use | Another program is using it. Find it with `lsof -i :8000` on a Mac or `Get-NetTCPConnection -LocalPort 8000` in PowerShell, and stop it. |
+| The page says the reporting service is not responding | The API is not running. Look at the lines marked `[api]` in the `npm run dev` output for the reason. |
+| `npm run test:e2e` cannot find a browser | Run `npx playwright install chromium` once. |
 
 ### Sample data
 
