@@ -1694,8 +1694,12 @@ You'll see each query arrive. Remove the line afterwards.
 names match:
 
 ```bash
-cd api && vendor/bin/phpunit --filter test_reports_every_problem_at_once
+cd api
+php vendor/bin/phpunit --filter test_reports_every_problem_at_once
 ```
+
+(Two lines rather than `&&`, because Windows PowerShell 5.1, the default
+terminal in VS Code on Windows, does not understand `&&`.)
 
 **Break a rule and watch the tests catch it.** Change `MAX_COUNT` in
 `ReturnValidator` from `1_000_000` to `100`, then run `npm run test:php`. Read

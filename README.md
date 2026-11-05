@@ -2,6 +2,8 @@
 
 Hello Alex and the team, the following will be my own commentary on the project. 
 
+I had some issues in that I'd not anticipated running this on windows, so when tested on windows I had to make changes. Claude added some setup checks to make sure the machine's config is up to scratch which I am in two minds about for you testing. If you do have significant issues I'd be happy to deploy the project for testing. 
+
 I approached the task by creating a skills file containing a .md transcription of the task along with my own notes on which tech to use from my point of view. I then asked Claude to recommend a PHP framework, or whether to use a framework as this was a missing part in my knowledge. It recommended plain PHP over Laravel, which I agreed with once I'd reviewed some pros and cons. 
 
 I took Claude's recommendations too on the structure of the PHP API and functions with the edge cases in mind.
@@ -11,7 +13,6 @@ The decisions on how the app should behave were mine though. I chose to show N/A
 I know the visuals are not being marked, but I couldn't resist creating a UI similar to the bank you showed me, and it wasn't costly in the design process, I simply asked Claude to visit their website and create something similar. I think it hopefully shows some care and attention to the task, by the way, the naming is all me!
 
 I am aware of some shortcomings in the project which will be documented in greater detail below, but I wanted to point these out in my own words.
-
 
 - I did run a little over the allotted 2 hours, especially spending time looking at the PHP and edge cases, creating some bespoke learning docs for myself. I wanted to learn something in the process as well as completing the task. The front end styling was not a factor in this. 
 
@@ -69,6 +70,7 @@ command-line script prints the same summary.
 | Data entry + reporting UI | Next.js (App Router), React, TypeScript | [`web/`](web) |
 | Reporting summary CLI | Node.js, TypeScript (run with `tsx`) | [`cli/`](cli) |
 | Shared types, API client, rate formula | TypeScript | [`shared/`](shared) |
+| Setup check and `php.ini` fix | Node.js, no dependencies (it runs before `npm install`) | [`scripts/`](scripts) |
 
 ```
  Browser (Next.js page) ──┐
@@ -83,16 +85,22 @@ command-line script prints the same summary.
 
 | Tool | Version | Used for |
 |---|---|---|
-| PHP | **8.3.36, 8.4.27, 8.5.12 or later**, with the `curl`, `mbstring`, `openssl`, `pdo_sqlite` and `zip` extensions | The API, the seed script and the PHP tests |
+| PHP | **8.3.36, 8.4.27, 8.5.12 or later**, with the `curl`, `mbstring`, `openssl`, `pdo_sqlite` and `zip` extensions (`zip` is optional on macOS and Linux) | The API, the seed script and the PHP tests |
 | Composer | 2.x | PHP packages (PHPUnit) and the autoloader |
 | Node.js | 22.12 or later (24 or 26 are fine) | The page, the summary script and the TypeScript tests |
 | Git | any recent version | Getting the code (not needed if you were sent a zip) |
 
 The minimums come from the test tools: PHPUnit 12 needs PHP 8.3 and Vitest 5
 needs Node 22.12. The PHP patch versions come from the security fix below.
-Everything was built and tested on macOS with PHP 8.5.12 and Node 22.13. The
-Windows steps follow the standard PHP for Windows set-up, and the npm scripts
-are written to work there, but they have not been run on a Windows machine.
+Everything was built on macOS with PHP 8.5.12 and Node 22.13. It has also
+been installed and run on Windows 11 with PHP 8.5.12 from winget and Node
+26.13, in VS Code's default terminal (Windows PowerShell 5.1). Setup, the dev
+servers, the summary script and every test suite, end-to-end included, pass
+on both systems.
+
+`npm run setup` starts by checking your tools: Node.js, PHP and its patch
+level, PHP's extensions, and Composer. If anything is missing it stops before
+installing anything and says how to fix it.
 
 > **Security warning: use a patched PHP.** In October 2026 PHP fixed two
 > critical remote-code-execution flaws, known as "PHP2Shell"
@@ -146,7 +154,8 @@ Run `php -v` afterwards to check you are on a patched release.
 
 ### Installing the tools on Windows 10 or 11
 
-Use **PowerShell**. The `winget` package manager is built into Windows 11 and
+Use **PowerShell**. VS Code's built-in terminal is PowerShell by default, so
+that is fine. The `winget` package manager is built into Windows 11 and
 recent versions of Windows 10.
 
 1. Install Git, PHP 8.5 and the current long-term-support version of Node.js:
@@ -157,37 +166,47 @@ recent versions of Windows 10.
    winget install --id OpenJS.NodeJS.LTS -e
    ```
 
-   Close PowerShell and open a new window, so it picks up the new programs,
-   then check `php -v` and `node -v`.
-2. Switch on PHP's extensions. PHP for Windows comes without a `php.ini`
-   settings file, and most extensions are off until one switches them on.
-   These commands copy PHP's own development template next to `php.exe` and
-   switch on the five extensions the project needs:
+2. Install Composer by downloading and running the official installer,
+   <https://getcomposer.org/Composer-Setup.exe>. It finds `php.exe` and adds
+   `composer` to your PATH. It may also create a `php.ini` for PHP, but that
+   file does not switch on everything this project needs. Step 5 deals with
+   that.
+3. **Restart VS Code completely** (close every window), or open a new
+   PowerShell window if you are not using VS Code. Terminals keep the PATH
+   they started with, so until then `php`, `composer` and `node` are "not
+   recognized". Opening a new terminal tab inside VS Code is not enough.
+   Then check:
 
    ```powershell
-   $phpDir = Split-Path (Get-Command php).Source
-   Copy-Item "$phpDir\php.ini-development" "$phpDir\php.ini"
-   $ini = Get-Content "$phpDir\php.ini"
-   $ini = $ini -replace '^;extension_dir = "ext"', "extension_dir = `"$phpDir\ext`""
-   $ini = $ini -replace '^;extension=(curl|mbstring|openssl|pdo_sqlite|zip)$', 'extension=$1'
-   Set-Content "$phpDir\php.ini" $ini
-   php -m
+   php -v
+   composer -V
+   node -v
    ```
 
-   `php -m` should now list `curl`, `mbstring`, `openssl`, `pdo_sqlite` and
-   `zip`. The `Copy-Item` line replaces any existing `php.ini` in that folder.
-   If you already have one you have customised, skip that line and edit your
-   own file instead. `php --ini` shows which file PHP is loading.
-3. Install Composer by downloading and running the official installer,
-   <https://getcomposer.org/Composer-Setup.exe>. It finds `php.exe` and adds
-   `composer` to your PATH. Open a new PowerShell window and check
-   `composer -V`.
 4. If PowerShell refuses to run `npm` with "running scripts is disabled on
    this system", allow scripts you run yourself for your own user account:
 
    ```powershell
    Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
    ```
+
+5. Get the code (see the next section), open a terminal in its folder, and
+   switch on PHP's extensions. PHP for Windows comes with most extensions off,
+   including `pdo_sqlite`, which the API needs for its database:
+
+   ```powershell
+   npm run setup:php-ini
+   ```
+
+   This finds the `php.ini` that PHP loads (`php --ini` shows it). It saves a
+   copy as `php.ini.backup-<date>`, then removes the `;` from the start of the
+   `extension=` lines that are missing. If PHP has no `php.ini` at all, it
+   creates one next to `php.exe` from PHP's own `php.ini-development`
+   template. It then runs the same checks as `npm run setup` and lists the
+   result. Running it again when nothing is missing changes nothing. To make
+   the change by hand instead, open that `php.ini` and remove the `;` from
+   `;extension=curl`, `;extension=mbstring`, `;extension=openssl`,
+   `;extension=pdo_sqlite` and `;extension=zip`.
 
 **Keeping them up to date on Windows:**
 
@@ -198,28 +217,44 @@ winget upgrade --id Git.Git -e
 composer self-update
 ```
 
-After upgrading PHP, run `php -v` to check you are on a patched release, and
-`php -m` to check the five extensions are still listed. If they are not,
-repeat step 2. `PHP.PHP.8.5` only moves between 8.5 releases; a later PHP
-version, such as 8.6, is a separate winget package.
+After upgrading PHP, run `php -v` to check you are on a patched release, then
+run `npm run setup:php-ini` in the project folder in case the upgrade
+replaced `php.ini`. It changes nothing if the extensions are still on.
+`PHP.PHP.8.5` only moves between 8.5 releases; a later PHP version, such as
+8.6, is a separate winget package.
 
-**Two differences on Windows:**
+**What is different on Windows:**
 
 - PHP's built-in server cannot run several worker processes on Windows, so
   the API handles one request at a time there. Everything works, just not in
-  parallel.
+  parallel. This is why `npm run dev` prints
+  `forking is not supported on this platform` when the API starts. That line
+  is harmless.
+- If a `7z.exe` is on your PATH (IT management tools often install an old
+  one), `npm run setup` may print `Failed to extract …` and
+  `Unzip with 7z command failed, falling back to ZipArchive class` for every
+  PHP package. Composer tries 7-Zip first on Windows and then uses PHP's
+  `zip` extension, so the install still finishes. This is why `zip` is
+  required on Windows.
+- Windows PowerShell 5.1 does not understand `&&`. Run chained commands one
+  line at a time, as every example below does.
 - If `npm run seed:fresh` cannot delete the database file, stop `npm run dev`
   first. Windows will not delete a file that another program has open.
 
 ### Getting the code and running it (both systems)
 
 Clone the repository, or unzip the copy you were sent, then open a terminal in
-its folder and run:
+its folder (in VS Code: **File → Open Folder**, then **Terminal → New
+Terminal**) and run:
 
 ```bash
-npm run setup      # npm install, composer install, create + seed the SQLite DB
-npm run dev        # PHP API on http://127.0.0.1:8000 and the UI on http://localhost:3000
+npm run setup:php-ini   # Windows: once, to switch on PHP's extensions (see step 5 above)
+npm run setup           # check the tools, npm install, composer install, create + seed the SQLite DB
+npm run dev             # PHP API on http://127.0.0.1:8000 and the UI on http://localhost:3000
 ```
+
+On a Mac, `npm run setup:php-ini` is not needed, because Homebrew's PHP
+already has every extension. If you run it anyway, it changes nothing.
 
 Then open <http://localhost:3000>. Use the **Viewing as** menu in the red bar
 to switch between a manager and a dealer (a demo stand-in for sign-in).
@@ -259,7 +294,7 @@ composer audit --working-dir=api      # known security problems, PHP
 npm update                            # newer versions within the ranges in package.json
 composer update --working-dir=api     # the same for PHP, within composer.json
 npx playwright install chromium       # the browser must match the Playwright version
-npm test && npm run test:e2e          # check nothing broke
+npm run test:all                      # check nothing broke (every suite, e2e included)
 ```
 
 `npm update` and `composer update` stay within the version ranges in
@@ -272,8 +307,13 @@ the updated lock files afterwards, so everyone gets the same versions.
 
 | Problem | What to do |
 |---|---|
+| `npm run setup` stops with `FAIL` lines | Each line says what is missing. Fix those, then run `npm run setup` again. |
+| `npm run setup` says `PHP extensions not switched on`, or Composer says an `ext-…` extension is missing | Run `npm run setup:php-ini`. If it says an extension is not installed with your PHP: on Windows, reinstall PHP with winget; on a Mac, run `brew reinstall php`. |
+| `php`, `composer` or `node` "is not recognized" in VS Code's terminal | VS Code's terminals keep the PATH from when VS Code started. Close every VS Code window and open it again. |
+| PowerShell says `running scripts is disabled on this system` | Run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once (step 4 of the Windows install). |
+| PowerShell says `The token '&&' is not a valid statement separator` | Windows PowerShell 5.1 has no `&&`. Run each command on its own line. |
+| `npm run setup:php-ini` says it could not write `php.ini` | PHP is installed for all users. Open the terminal as administrator and run it again, or edit the file by hand (step 5 of the Windows install). |
 | Composer says your PHP version does not satisfy the requirement | Your PHP is unpatched or too old. Update it (see above) and check `php -v`. |
-| Composer says an `ext-…` extension is missing | On Windows, repeat step 2 of the Windows install. On a Mac, reinstall PHP with `brew reinstall php`. |
 | npm warns `EBADENGINE` | Your Node.js is older than 22.12. Update it (see above). |
 | `npm run dev` says port 8000 or 3000 is already in use | Another program is using it. Find it with `lsof -i :8000` on a Mac or `Get-NetTCPConnection -LocalPort 8000` in PowerShell, and stop it. |
 | The page says the reporting service is not responding | The API is not running. Look at the lines marked `[api]` in the `npm run dev` output for the reason. |
@@ -492,6 +532,7 @@ session or SSO token, and `AccessPolicy` would not change.
 | Shared (Vitest) | `npm run test:ts` | Rate vectors (same file as PHP), formatting, month helpers, API client |
 | CLI (Vitest) | (same) | Argument parsing, output format, empty period, mismatch → exit 3, API down → exit 1 |
 | Web (Vitest + Testing Library) | (same) | Form success / 422 / 409 feedback, double-click guard, idempotency-key reuse on retry, dealer lock, table loading / empty / error + retry, refresh after submit, filters, manager-only actions, correction dialog, history |
+| Setup check (Vitest) | (same) | Node and PHP version rules (matching `engines` and `composer.json`), which PHP extensions each system needs, the `php.ini` edit (uncomment, append, `extension_dir`, Windows line endings) |
 | End-to-end (Playwright) | `npm run test:e2e` | Real Chromium against a production build, the real PHP API and its own SQLite file (reset before each test): submit and refresh, field errors, the duplicate message, a lost response retried without a duplicate, a browser bypassing the form, empty and zero-enquiry months, **page vs CLI figures for five filters**, a manager correction and its history, dealer scope, a failed request and retry |
 
 ## Unfinished work
