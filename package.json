@@ -11,7 +11,8 @@
     "node": "^22.12.0 || ^24.0.0 || >=26.0.0"
   },
   "scripts": {
-    "setup": "npm install && composer install --working-dir=api && npm run seed",
+    "setup": "node scripts/check-setup.mjs && npm install && composer install --working-dir=api && npm run seed",
+    "setup:php-ini": "node scripts/check-setup.mjs --fix-php-ini",
     "seed": "php api/database/seed.php",
     "seed:fresh": "php api/database/seed.php --fresh",
     "dev": "concurrently --names api,web --prefix-colors red,blue \"npm:dev:api\" \"npm:dev:web\"",

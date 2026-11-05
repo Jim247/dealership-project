@@ -158,13 +158,15 @@ dealership/
 ├── cli/                      Node.js summary script (TS, run with tsx)
 ├── web/                      Next.js App Router app (TS)
 ├── fixtures/conversion-cases.json   rate vectors read by BOTH PHPUnit and Vitest
+├── scripts/check-setup.mjs   setup pre-flight check + opt-in php.ini fix (plain Node, no deps)
 ├── package.json              npm workspaces (shared, cli, web) + root scripts
 ├── README.md
 ├── TODO.md
 └── CLAUDE.md
 ```
 
-Root scripts: `npm run setup` (install + composer install + migrate + seed),
+Root scripts: `npm run setup` (tool check + install + composer install +
+migrate + seed), `npm run setup:php-ini` (switch on PHP's extensions),
 `npm run dev` (PHP on :8000 and Next on :3000 together), `npm run seed`,
 `npm run summary -- --from … --to …`, and `npm test` (PHP suite, then TS suites).
 
@@ -526,6 +528,9 @@ free port with a **temp SQLite file** and seeds it fresh per test class.
   a 422, shows the 409 message, shows success and triggers a table refetch, and
   the submit button is disabled while pending. The table shows the loading,
   empty and error + retry states, and the totals show `N/A` for zero enquiries.
+- `scripts` (plain JS, added 2026-11-05): the Node and PHP version rules, which
+  extensions each OS needs, and the php.ini edit (uncomment, append,
+  `extension_dir`, CRLF kept).
 
 **End-to-end (Playwright, added after the main build at James's request):**
 `npm run test:e2e` starts its own PHP API (port 8100) and a production
@@ -605,8 +610,21 @@ and covered by tests.
   process). `npm run test:php` runs `php vendor/bin/phpunit`. The integration
   tests write to `NUL` and skip `pkill` on Windows, and the e2e suite starts
   the CLI with `node --import tsx` rather than `npm`. `composer.json` requires
-  `ext-mbstring`. The README has install and update steps for both systems;
-  the Windows steps have not been run on Windows.
+  `ext-mbstring`. The README has install and update steps for both systems.
+- Setup is checked before it installs anything (2026-11-05, found on a real
+  Windows 11 machine). `npm run setup` first runs `scripts/check-setup.mjs`,
+  which checks Node (same range as `engines`), PHP's patch level (same rule as
+  `composer.json`), PHP's extensions and Composer, and stops with a fix for
+  each failure. PHP for Windows ships with `pdo_sqlite` off, and the php.ini
+  that Composer-Setup.exe writes leaves it off, so `npm run setup:php-ini`
+  switches the missing extensions on in the php.ini PHP loads (backup first;
+  created from `php.ini-development` if there is none). It never runs as part
+  of `setup`, so nothing outside the repo is edited unasked. `zip` is required
+  on Windows only: Composer there tries any `7z.exe` on PATH first (often an
+  old copy from IT tools, which fails), and `zip` is its only fallback.
+  Verified on Windows 11 + PHP 8.5.12 (winget) + Node 26.13 in VS Code's
+  PowerShell 5.1: setup, dev, summary, `npm test` and `npm run test:e2e` pass.
+  README examples avoid `&&`, which Windows PowerShell 5.1 rejects.
 
 ### B14. Definition of done
 
