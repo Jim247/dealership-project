@@ -116,7 +116,7 @@ prepared to explain how you would handle them.
 | # | Topic | Decision |
 |---|-------|----------|
 | D1 | Time box | **Ignore the 2-hour box** and build everything to a high standard. The README must still list anything unfinished (spec §3.5). |
-| D2 | PHP runtime | Homebrew `php` + `composer`, served by PHP's built-in server (`php -S`). No Docker. |
+| D2 | PHP runtime | Homebrew `php` + `composer`, served by PHP's built-in server (`php -S`). No Docker for local development. Docker is used only for the public demo (D18, amended 2026-11-16). |
 | D3 | PHP structure | **Plain PHP, no framework.** Front controller, a tiny router, PDO, and small single-purpose classes. |
 | D4 | Storage | **SQLite via PDO.** Integrity is enforced by the database itself (UNIQUE, CHECK, FK), not only by app code. |
 | D5 | Zero enquiries | Conversion rate shows **`N/A`**, otherwise **2 decimal places** (e.g. `23.45%`). |
@@ -127,11 +127,15 @@ prepared to explain how you would handle them.
 | D10 | Look & feel | **Santander-inspired, original Debonaire branding.** Copy no Santander logo, fonts, imagery or copy. See B9. |
 | D11 | Language | **TypeScript** for web, CLI and shared code. The CLI runs with `tsx`. |
 | D12 | Commits | **Conventional Commits, one per coherent feature step.** Every commit ends with the `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` trailer. |
-| D13 | Remote | **Local git only.** Never push or create a remote without James asking. |
+| D13 | Remote | James added a GitHub remote, `Jim247/dealership-project` (2026-11-05). **Never push without James asking**, and ask again for each push. Never create another remote. |
 | D14 | Edge cases implemented | **All four**: idempotency key, corrections with audit trail, mock role switch, and a seeded month with no returns. |
 | D15 | Roles | **Dealer**: submits and views only their own dealership. **Manager**: views all dealerships and is the **only** role that can correct a return. |
 | D16 | Seed data | **4 fictional dealerships** (B6) covering every edge case. |
 | D17 | Comments | Clear comments that name the feature, **especially in PHP** (see B10). |
+| D18 | Public demo (2026-11-16) | The page goes on **Vercel** (project root `web`). The API goes on **Render's free plan** as a Docker container built from the official PHP 8.5 Apache image (a patched release, 8.5.12 or later). Both use their free default addresses. See B15. |
+| D19 | Demo data | The API container reseeds from scratch (`seed.php --fresh`) every time it starts, so the public data always returns to the sample data. There is no lasting disk. |
+| D20 | Demo visitors | Visitors can do everything: submit, correct and switch role. A banner, shown only when `NEXT_PUBLIC_DEMO_MODE=true`, says it is a demo, that the identity is a stand-in and that the data resets. There is no extra abuse protection: the resets and the existing validation are enough for a demo. |
+| D21 | Deploy workflow | Work happens on a branch. Claude pushes it only when James asks, and James merges the pull request on GitHub. Render and Vercel deploy from `main`. Claude creates the Vercel project through the Vercel connector and asks before the first production deploy. James sets Render up in its dashboard from `render.yaml`. |
 
 ### B2. Repository layout
 
@@ -557,7 +561,7 @@ stays fast; `npm run test:all` runs everything.
   first test onwards.
 - Every commit message ends with:
   `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`
-- Local only. Never push, add a remote, or rewrite published history.
+- Push to the GitHub remote only when James asks (D13). Never add another remote or rewrite published history.
 - Never commit `*.sqlite`, `vendor/`, `node_modules/`, `.next/`, or `.env*` (except `.env.example`).
 
 ### B13. README must contain (F14, spec §3.5)
@@ -633,3 +637,44 @@ and covered by tests.
 - [x] The page totals and the CLI summary agree for at least: all data, 2026-08 (empty), 2026-07 (includes the zero-enquiry return), and a single dealership.
 - [x] The README covers every item in B13.
 - [x] The git history reads as a clear story of the build.
+
+### B15. Public demo deployment (D18 to D21, 2026-11-16)
+
+The step-by-step plan is `docs/deployment-plan.md`. These are the rules it follows.
+
+- **Shape.** The visitor's browser loads the page from Vercel and calls the
+  API on Render directly, because the page reads `NEXT_PUBLIC_API_URL`. Both
+  use HTTPS.
+- **API image.** `api/Dockerfile` builds from an exact official image tag,
+  `php:8.5.12-apache`. Render keeps copies of the images it pulls, so a moving
+  tag such as `8.5-apache` could quietly build on an older PHP. With an exact
+  tag, a PHP update is a one-line commit. The build fails if PHP is older than 8.5.12 (PHP2Shell) or if a
+  required extension is missing, because `composer install` from the lock file
+  does not check the root PHP constraint. Composer installs production
+  packages only (`--no-dev`). Apache serves `api/public`, sends every path to
+  `index.php` (`FallbackResource`) and listens on `0.0.0.0` at the port in
+  `PORT` (Render's default is 10000).
+  The container never uses `php -S`, which PHP documents as unsuitable for
+  public use.
+- **Start.** The container runs `php database/seed.php --fresh` as the web
+  server user (`www-data`), so SQLite can write the file and its WAL files,
+  and then starts Apache. Every start gives the sample data.
+- **Settings.** Render holds `DEBONAIRE_ALLOWED_ORIGINS`, set to the Vercel
+  production address only. Vercel holds `NEXT_PUBLIC_API_URL` (the Render
+  address) and `NEXT_PUBLIC_DEMO_MODE=true`. `NEXT_PUBLIC_` values are fixed
+  when the page is built, so changing one needs a redeploy.
+- **Banner.** It shows only when `NEXT_PUBLIC_DEMO_MODE=true`, and a Vitest
+  test covers both cases. The same setting asks search engines not to list the
+  demo. Local runs and the test suites look exactly as before.
+- **Local development is unchanged.** Nobody needs Docker to run, test or
+  assess the project.
+- **Files.** `api/Dockerfile`, `api/.dockerignore`, `api/docker/` (Apache
+  config and start script) and `render.yaml` at the repo root. The README has
+  a "Live demo" section in the AI notes part. James's message is not touched.
+- **Accepted limits.**
+  - Render's free plan sleeps after 15 minutes without traffic and takes
+    about a minute to wake.
+  - Render may restart the service at any time, which resets the data.
+  - Render's free region is fixed at creation; this demo uses `frankfurt`.
+  - Vercel preview deployments are not in the CORS list, so only the
+    production address can reach the API.
