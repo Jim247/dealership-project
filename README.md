@@ -83,8 +83,10 @@ command-line script prints the same summary.
 
 A public copy runs online, so you can try it without installing anything:
 
-- **Page:** link added after the first deploy
-- **API:** link added after the first deploy
+- **Page:** <https://debonaire-dealership.vercel.app>
+- **API:** <https://debonaire-api.onrender.com>. Its health check,
+  [`/api/health`](https://debonaire-api.onrender.com/api/health), is the only
+  endpoint that needs no access code.
 
 Things to know before you try it:
 
@@ -102,14 +104,89 @@ Things to know before you try it:
 - **The summary script and curl work against it too.** Give the summary
   script the API's address with `--api` and the code with `--access-code`.
   The script can also read the code from a `DEBONAIRE_ACCESS_CODE`
-  environment variable. With curl, add the header
-  `-H 'Authorization: Bearer <code>'` to any example below.
+  environment variable. For curl, see the examples just below.
+
+### Trying the live API with curl
+
+Put the API's address and your access code in two shell variables first,
+then copy any example. Every request except the health check needs the code
+as `Authorization: Bearer <code>`. On Windows, run these in Git Bash, which
+comes with Git.
+
+```bash
+API=https://debonaire-api.onrender.com
+CODE='your-access-code'
+```
+
+**Waking it up and checking the code**
+
+```bash
+# Health: needs no code. After a quiet spell this first call can take about a minute.
+curl -s "$API/api/health"
+
+# No code: 401 access_code_required
+curl -s -H 'X-Debonaire-Role: manager' "$API/api/returns"
+
+# A wrong code: 401 invalid_access_code
+curl -s -H 'Authorization: Bearer not-the-code' -H 'X-Debonaire-Role: manager' "$API/api/returns"
+```
+
+**Reading data**
+
+```bash
+# Every dealership, as a manager
+curl -s -H "Authorization: Bearer $CODE" -H 'X-Debonaire-Role: manager' "$API/api/dealerships"
+
+# Every return, with the server's totals: 10 returns, 2,090 enquiries, 497 sales, 23.78%
+curl -s -H "Authorization: Bearer $CODE" -H 'X-Debonaire-Role: manager' "$API/api/returns"
+
+# June to September only, as a manager
+curl -s -H "Authorization: Bearer $CODE" -H 'X-Debonaire-Role: manager' "$API/api/returns?from=2026-06&to=2026-09"
+
+# The same as a Harbour Cars dealer: forced to their own dealership
+curl -s -H "Authorization: Bearer $CODE" -H 'X-Debonaire-Role: dealer' -H 'X-Debonaire-Dealership: HBC' "$API/api/returns"
+
+# August 2026 has no returns: zero totals and a null rate (shown as N/A on the page)
+curl -s -H "Authorization: Bearer $CODE" -H 'X-Debonaire-Role: manager' "$API/api/returns?from=2026-08&to=2026-08"
+```
+
+**Changing data** (the next restart puts the sample data back)
+
+```bash
+# Save Riverside Autos' October return: 201 Created. Run it again with the same
+# Idempotency-Key and it replays the 201 with "Idempotent-Replayed: true".
+curl -si -X POST "$API/api/returns" \
+  -H "Authorization: Bearer $CODE" -H 'X-Debonaire-Role: manager' \
+  -H 'Content-Type: application/json' -H 'Idempotency-Key: live-example-0001' \
+  -d '{"dealershipId":"RVA","month":"2026-10","enquiries":131,"sales":27}'
+
+# A second return for the same dealership and month: 409 duplicate_return
+curl -s -X POST "$API/api/returns" \
+  -H "Authorization: Bearer $CODE" -H 'X-Debonaire-Role: manager' \
+  -H 'Content-Type: application/json' \
+  -d '{"dealershipId":"RVA","month":"2026-10","enquiries":50,"sales":5}'
+
+# Correct Harbour Cars' June return (id 8 in the sample data), giving a reason
+curl -s -X PUT "$API/api/returns/8" \
+  -H "Authorization: Bearer $CODE" -H 'X-Debonaire-Role: manager' \
+  -H 'Content-Type: application/json' \
+  -d '{"enquiries":15,"sales":3,"reason":"One enquiry was logged late"}'
+
+# Its history: the original submission, then the correction
+curl -s -H "Authorization: Bearer $CODE" -H 'X-Debonaire-Role: manager' "$API/api/returns/8/audit"
+```
+
+The summary script prints the same totals as the page:
+
+```bash
+npm run summary -- --api https://debonaire-api.onrender.com --access-code "$CODE"
+```
 
 How it is deployed:
 
 | Part | Host | How |
 |---|---|---|
-| Page | Vercel | Builds `web/` from `main`. `NEXT_PUBLIC_API_URL` points it at the API. `NEXT_PUBLIC_DEMO_MODE=true` shows the demo banner and asks search engines not to list the demo. |
+| Page | Vercel | Builds `web/` from `main`. `NEXT_PUBLIC_API_URL` points it at the API. `NEXT_PUBLIC_DEMO_MODE=true` makes the page ask for the access code straight away, and asks search engines not to list the demo. |
 | API | Render, free plan | Builds the container in [`api/Dockerfile`](api/Dockerfile) from `main`, as [`render.yaml`](render.yaml) describes: PHP 8.5.12 and Apache, with fresh sample data on every start. `DEBONAIRE_ALLOWED_ORIGINS` lets only the Vercel page call it. `DEBONAIRE_ACCESS_CODE` holds the access code, typed into Render's dashboard and never committed. |
 
 Running the project locally doesn't need Docker or either host: follow

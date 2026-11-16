@@ -276,3 +276,39 @@ on 16 November 2026:
 - **If the data should be kept later**, Render's paid plan with a disk, or
   Railway with a volume, is the upgrade. Only `render.yaml` and the start
   script change: the seed would add missing rows rather than start fresh.
+
+## How it went (16 November 2026)
+
+The demo is live:
+
+- **Page:** <https://debonaire-dealership.vercel.app>
+- **API:** <https://debonaire-api.onrender.com>
+
+A few things went differently from the plan:
+
+- **Render accepted the free plan for a Docker service.** James created the
+  Blueprint in Render's dashboard, and the first deploy came from the merge
+  of pull request #2.
+- **The Vercel connector couldn't create projects.** Vercel refused both
+  routes with a permission error. James imported the repo in Vercel's
+  dashboard instead, as `dealership-project`.
+- **That project's default address was already taken.**
+  `dealership-project.vercel.app` belongs to someone else's app. James
+  added `debonaire-dealership.vercel.app` under **Settings → Domains**,
+  which is the address Render allows.
+- **The first Vercel build failed at the TypeScript step.** Vercel installs
+  from inside `web/`, which leaves out the packages listed at the repo's top
+  level. Pull request #3 fixed it by listing `typescript`, `@types/node` and
+  `vitest` in `web/package.json` (bible B15).
+- **Checked live without the access code:**
+  - the page's banner and its `noindex` tag;
+  - that the page calls the Render API;
+  - that CORS allows only the page's address, including the `Authorization`
+    header;
+  - that a wrong code gets "That access code isn't valid". That proves the
+    page reaches the API and reads its reply.
+
+  James checks the real code himself.
+- **Afterwards, James removed the demo banner** (step 3), and the footer's
+  "Identity switching is a demo stand-in" line. Demo mode still asks for the
+  access code and keeps the demo out of search engines (bible B15).

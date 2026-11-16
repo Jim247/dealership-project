@@ -2,7 +2,6 @@ import type { Metadata } from 'next';
 import { Open_Sans } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { AccessCodeGate } from '@/components/AccessCodeGate';
-import { DemoBanner } from '@/components/DemoBanner';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
 import { AccessCodeProvider } from '@/lib/access';
@@ -27,7 +26,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <IdentityProvider>
           {/* F15: on the public demo, the page asks for the access code before it shows anything. */}
           <AccessCodeProvider>
-            <DemoBanner />
             <SiteHeader />
             <AccessCodeGate>{children}</AccessCodeGate>
             <SiteFooter />

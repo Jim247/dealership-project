@@ -134,7 +134,7 @@ prepared to explain how you would handle them.
 | D17 | Comments | Clear comments that name the feature, **especially in PHP** (see B10). |
 | D18 | Public demo (2026-11-16) | The page goes on **Vercel** (project root `web`). The API goes on **Render's free plan** as a Docker container built from the official PHP 8.5 Apache image (a patched release, 8.5.12 or later). Both use their free default addresses. See B15. |
 | D19 | Demo data | The API container reseeds from scratch (`seed.php --fresh`) every time it starts, so the public data always returns to the sample data. There is no lasting disk. |
-| D20 | Demo visitors | Visitors with the access code (D22) can do everything: submit, correct and switch role. A banner, shown only when `NEXT_PUBLIC_DEMO_MODE=true`, says it is a demo, that the identity is a stand-in and that the data resets. There is no extra abuse protection: the resets and the existing validation are enough for a demo. |
+| D20 | Demo visitors | Visitors with the access code (D22) can do everything: submit, correct and switch role. (A demo banner was added, then removed at James's request on the same day, see B15.) There is no extra abuse protection: the resets and the existing validation are enough for a demo. |
 | D21 | Deploy workflow | Work happens on a branch. Claude pushes it only when James asks, and James merges the pull request on GitHub. Render and Vercel deploy from `main`. Claude creates the Vercel project through the Vercel connector and asks before the first production deploy. James sets Render up in its dashboard from `render.yaml`. |
 | D22 | Access code (2026-11-16) | The public API requires **one shared access code**, so James can choose who uses the demo. Render holds it in `DEBONAIRE_ACCESS_CODE`, and clients send it as `Authorization: Bearer <code>`. When the variable is unset (local runs, every test suite) nothing is checked. The page stays public but asks for the code. A share link, `/?code=…`, saves the code in that browser and removes it from the address bar. The summary script takes `--access-code` or the same variable. Feature F15, details in B15. |
 
@@ -693,9 +693,15 @@ The step-by-step plan is `docs/deployment-plan.md`. These are the rules it follo
   - **The code itself.** It is never committed. James types it into Render's
     dashboard. It should be long, random and safe in a link, for example the
     output of `openssl rand -hex 16`.
-- **Banner.** It shows only when `NEXT_PUBLIC_DEMO_MODE=true`, and a Vitest
-  test covers both cases. The same setting asks search engines not to list the
-  demo. Local runs and the test suites look exactly as before.
+- **Demo mode.** `NEXT_PUBLIC_DEMO_MODE=true` makes the page ask for the
+  access code straight away, and asks search engines not to list the demo.
+  Local runs and the test suites leave it unset and look exactly as before.
+- **No banner or footer notice (2026-11-16, James's call).** The demo banner
+  above the header was removed, and so was the footer line "Identity
+  switching is a demo stand-in for real sign-in". The page still marks the
+  identity switch with its "demo" tag. The access code screen still warns
+  that waking the API can take up to a minute. The README states that the
+  identity is a stand-in.
 - **`web/package.json` lists everything the page's build needs (2026-11-16).**
   - Vercel runs `npm install` inside `web/`, its Root Directory. npm treats
     that as installing the `web` workspace only, and skips the root's
