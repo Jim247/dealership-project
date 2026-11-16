@@ -1,6 +1,7 @@
 /**
  * Covers the typed API client: identity headers (F9), the idempotency key
- * (F7), query building (F3) and error-envelope handling.
+ * (F7), query building (F3), error-envelope handling and the public demo's
+ * access code (F15).
  */
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError, createApiClient } from '../src/api-client';
@@ -91,5 +92,51 @@ describe('createApiClient', () => {
     const client = createApiClient({ baseUrl: 'http://api.test', identity: { role: 'manager' }, fetch });
 
     await expect(client.listReturns()).rejects.toMatchObject({ status: 502, code: 'http_error' });
+  });
+});
+
+describe('createApiClient access code (F15)', () => {
+  it('sends the access code as a Bearer token when one is given', async () => {
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(200, report));
+    const client = createApiClient({ baseUrl: 'http://api.test', identity: { role: 'manager' }, accessCode: 'abc123', fetch });
+
+    await client.listReturns();
+
+    expect(fetch.mock.calls[0]![1].headers).toMatchObject({ Authorization: 'Bearer abc123', 'X-Debonaire-Role': 'manager' });
+  });
+
+  it('sends no Authorization header without a code', async () => {
+    // A fresh Response per call: a body can only be read once.
+    const fetch = vi.fn().mockImplementation(async () => jsonResponse(200, report));
+    for (const accessCode of [undefined, null, '']) {
+      const client = createApiClient({ baseUrl: 'http://api.test', identity: { role: 'manager' }, accessCode, fetch });
+      await client.listReturns();
+    }
+
+    for (const [, init] of fetch.mock.calls) {
+      expect(init.headers).not.toHaveProperty('Authorization');
+    }
+  });
+
+  it.each(['access_code_required', 'invalid_access_code'])('reports a %s refusal before throwing', async (code) => {
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(401, { error: { code, message: 'No.' } }));
+    const onAccessCodeRejected = vi.fn();
+    const client = createApiClient({ baseUrl: 'http://api.test', identity: { role: 'manager' }, onAccessCodeRejected, fetch });
+
+    const error = (await client.listReturns().catch((e: unknown) => e)) as ApiError;
+
+    expect(error.isAccessCodeError).toBe(true);
+    expect(onAccessCodeRejected).toHaveBeenCalledWith(error);
+  });
+
+  it('does not treat other 401s, such as a missing identity, as an access code problem', async () => {
+    const fetch = vi.fn().mockResolvedValue(jsonResponse(401, { error: { code: 'missing_identity', message: 'Who?' } }));
+    const onAccessCodeRejected = vi.fn();
+    const client = createApiClient({ baseUrl: 'http://api.test', identity: { role: 'manager' }, onAccessCodeRejected, fetch });
+
+    const error = (await client.listReturns().catch((e: unknown) => e)) as ApiError;
+
+    expect(error.isAccessCodeError).toBe(false);
+    expect(onAccessCodeRejected).not.toHaveBeenCalled();
   });
 });

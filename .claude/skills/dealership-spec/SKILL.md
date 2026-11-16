@@ -116,7 +116,7 @@ prepared to explain how you would handle them.
 | # | Topic | Decision |
 |---|-------|----------|
 | D1 | Time box | **Ignore the 2-hour box** and build everything to a high standard. The README must still list anything unfinished (spec §3.5). |
-| D2 | PHP runtime | Homebrew `php` + `composer`, served by PHP's built-in server (`php -S`). No Docker. |
+| D2 | PHP runtime | Homebrew `php` + `composer`, served by PHP's built-in server (`php -S`). No Docker for local development. Docker is used only for the public demo (D18, amended 2026-11-16). |
 | D3 | PHP structure | **Plain PHP, no framework.** Front controller, a tiny router, PDO, and small single-purpose classes. |
 | D4 | Storage | **SQLite via PDO.** Integrity is enforced by the database itself (UNIQUE, CHECK, FK), not only by app code. |
 | D5 | Zero enquiries | Conversion rate shows **`N/A`**, otherwise **2 decimal places** (e.g. `23.45%`). |
@@ -127,11 +127,16 @@ prepared to explain how you would handle them.
 | D10 | Look & feel | **Santander-inspired, original Debonaire branding.** Copy no Santander logo, fonts, imagery or copy. See B9. |
 | D11 | Language | **TypeScript** for web, CLI and shared code. The CLI runs with `tsx`. |
 | D12 | Commits | **Conventional Commits, one per coherent feature step.** Every commit ends with the `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>` trailer. |
-| D13 | Remote | **Local git only.** Never push or create a remote without James asking. |
+| D13 | Remote | James added a GitHub remote, `Jim247/dealership-project` (2026-11-05). **Never push without James asking**, and ask again for each push. Never create another remote. |
 | D14 | Edge cases implemented | **All four**: idempotency key, corrections with audit trail, mock role switch, and a seeded month with no returns. |
 | D15 | Roles | **Dealer**: submits and views only their own dealership. **Manager**: views all dealerships and is the **only** role that can correct a return. |
 | D16 | Seed data | **4 fictional dealerships** (B6) covering every edge case. |
 | D17 | Comments | Clear comments that name the feature, **especially in PHP** (see B10). |
+| D18 | Public demo (2026-11-16) | The page goes on **Vercel** (project root `web`). The API goes on **Render's free plan** as a Docker container built from the official PHP 8.5 Apache image (a patched release, 8.5.12 or later). Both use their free default addresses. See B15. |
+| D19 | Demo data | The API container reseeds from scratch (`seed.php --fresh`) every time it starts, so the public data always returns to the sample data. There is no lasting disk. |
+| D20 | Demo visitors | Visitors with the access code (D22) can do everything: submit, correct and switch role. A banner, shown only when `NEXT_PUBLIC_DEMO_MODE=true`, says it is a demo, that the identity is a stand-in and that the data resets. There is no extra abuse protection: the resets and the existing validation are enough for a demo. |
+| D21 | Deploy workflow | Work happens on a branch. Claude pushes it only when James asks, and James merges the pull request on GitHub. Render and Vercel deploy from `main`. Claude creates the Vercel project through the Vercel connector and asks before the first production deploy. James sets Render up in its dashboard from `render.yaml`. |
+| D22 | Access code (2026-11-16) | The public API requires **one shared access code**, so James can choose who uses the demo. Render holds it in `DEBONAIRE_ACCESS_CODE`, and clients send it as `Authorization: Bearer <code>`. When the variable is unset (local runs, every test suite) nothing is checked. The page stays public but asks for the code. A share link, `/?code=…`, saves the code in that browser and removes it from the address bar. The summary script takes `--access-code` or the same variable. Feature F15, details in B15. |
 
 ### B2. Repository layout
 
@@ -191,6 +196,7 @@ these IDs so an assessor can trace a requirement from spec, to code, to test.
 | F12 | CLI summary with period args + server cross-check | §3.4 | cli |
 | F13 | Shared conversion-rate formula + parity fixtures | §4 | shared |
 | F14 | README handover | §3.5 | docs |
+| F15 | Shared access code for the public demo (D22) | §4 access | api + web + cli |
 
 ### B4. Business rules (authoritative)
 
@@ -359,6 +365,14 @@ CORS allows `http://localhost:3000` and `http://127.0.0.1:3000` (override with
 | `PUT /api/returns/{id}` body `{enquiries, sales, reason}` | `200 {"data":Return}` | 400, 401, 403, 404, 422 |
 | `GET /api/returns/{id}/audit` | `200 {"data":[AuditEntry]}` | 401, 403, 404 |
 | anything else | — | `404 not_found` / `405 method_not_allowed` |
+
+**Access code (F15, D22).** When `DEBONAIRE_ACCESS_CODE` is set, every
+request except `GET /api/health` and CORS preflights must send
+`Authorization: Bearer <code>`. The check runs before routing and identity.
+With no header, or one that is not `Bearer`, the response is
+`401 access_code_required`. With a wrong code, it is `401 invalid_access_code`.
+Both carry a `WWW-Authenticate: Bearer` header. CORS allows the
+`Authorization` header.
 
 ```ts
 type Return = { id: number; dealershipId: string; dealershipName: string; month: string;
@@ -557,7 +571,7 @@ stays fast; `npm run test:all` runs everything.
   first test onwards.
 - Every commit message ends with:
   `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`
-- Local only. Never push, add a remote, or rewrite published history.
+- Push to the GitHub remote only when James asks (D13). Never add another remote or rewrite published history.
 - Never commit `*.sqlite`, `vendor/`, `node_modules/`, `.next/`, or `.env*` (except `.env.example`).
 
 ### B13. README must contain (F14, spec §3.5)
@@ -633,3 +647,66 @@ and covered by tests.
 - [x] The page totals and the CLI summary agree for at least: all data, 2026-08 (empty), 2026-07 (includes the zero-enquiry return), and a single dealership.
 - [x] The README covers every item in B13.
 - [x] The git history reads as a clear story of the build.
+
+### B15. Public demo deployment (D18 to D21, 2026-11-16)
+
+The step-by-step plan is `docs/deployment-plan.md`. These are the rules it follows.
+
+- **Shape.** The visitor's browser loads the page from Vercel and calls the
+  API on Render directly, because the page reads `NEXT_PUBLIC_API_URL`. Both
+  use HTTPS.
+- **API image.** `api/Dockerfile` builds from an exact official image tag,
+  `php:8.5.12-apache`. Render keeps copies of the images it pulls, so a moving
+  tag such as `8.5-apache` could quietly build on an older PHP. With an exact
+  tag, a PHP update is a one-line commit. The build fails if PHP is older than 8.5.12 (PHP2Shell) or if a
+  required extension is missing, because `composer install` from the lock file
+  does not check the root PHP constraint. Composer installs production
+  packages only (`--no-dev`). Apache serves `api/public`, sends every path to
+  `index.php` (`FallbackResource`) and listens on `0.0.0.0` at the port in
+  `PORT` (Render's default is 10000).
+  The container never uses `php -S`, which PHP documents as unsuitable for
+  public use.
+- **Start.** The container runs `php database/seed.php --fresh`. It then
+  gives the database folder to the web server user (`www-data`), so PHP under
+  Apache can write the file and its WAL files, and starts Apache. Every start
+  gives the sample data.
+- **Settings.** Render holds `DEBONAIRE_ALLOWED_ORIGINS`, set to the Vercel
+  production address only. Vercel holds `NEXT_PUBLIC_API_URL` (the Render
+  address) and `NEXT_PUBLIC_DEMO_MODE=true`. `NEXT_PUBLIC_` values are fixed
+  when the page is built, so changing one needs a redeploy.
+- **Access code (F15, D22).**
+  - **API.** `Http\AccessCode` compares the code with `hash_equals`, so the
+    comparison time gives nothing away. `GET /api/health` stays open,
+    because Render's health check sends no code. Apache keeps
+    `Authorization` from PHP unless `CGIPassAuth On` is set, so the container
+    sets it. If that setting is lost, the API fails closed: every request gets
+    a 401.
+  - **Page.** In demo mode, a visitor with no saved code sees an "Enter
+    access code" screen in place of the header controls and the dashboard.
+    Any `access_code_required` or `invalid_access_code` response brings that
+    screen back, with a message for a wrong code. The code is kept in
+    `localStorage` (`debonaire.accessCode`), like the demo identity. Opening
+    `/?code=…` saves the code and removes it from the address bar with
+    `history.replaceState`.
+  - **Summary script.** It sends the code from `--access-code`, or from the
+    `DEBONAIRE_ACCESS_CODE` environment variable.
+  - **The code itself.** It is never committed. James types it into Render's
+    dashboard. It should be long, random and safe in a link, for example the
+    output of `openssl rand -hex 16`.
+- **Banner.** It shows only when `NEXT_PUBLIC_DEMO_MODE=true`, and a Vitest
+  test covers both cases. The same setting asks search engines not to list the
+  demo. Local runs and the test suites look exactly as before.
+- **Local development is unchanged.** Nobody needs Docker to run, test or
+  assess the project.
+- **Files.** `api/Dockerfile`, `api/.dockerignore`, `api/docker/` (Apache
+  config, PHP overrides and the start script) and `render.yaml` at the repo
+  root. `.gitattributes` keeps `*.sh` files LF, because a Linux container
+  cannot run a script with Windows line endings. The README has
+  a "Live demo" section in the AI notes part. James's message is not touched.
+- **Accepted limits.**
+  - Render's free plan sleeps after 15 minutes without traffic and takes
+    about a minute to wake.
+  - Render may restart the service at any time, which resets the data.
+  - Render's free region is fixed at creation; this demo uses `frankfurt`.
+  - Vercel preview deployments are not in the CORS list, so only the
+    production address can reach the API.

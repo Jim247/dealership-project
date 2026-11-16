@@ -9,25 +9,28 @@
 
 import { useEffect, useState } from 'react';
 import type { Dealership } from '@debonaire/shared';
+import { useAccessCode } from '@/lib/access';
 import { apiClientFor } from '@/lib/api';
 import { identityKey, useIdentity } from '@/lib/identity';
 import styles from './RoleSwitcher.module.css';
 
 export function RoleSwitcher() {
   const { identity, setIdentity } = useIdentity();
+  const { clientOptions } = useAccessCode();
   const [dealerships, setDealerships] = useState<Dealership[]>([]);
 
-  // The switcher lists every dealership, so it asks as a manager.
+  // The switcher lists every dealership, so it asks as a manager (with the
+  // public demo's access code, F15).
   useEffect(() => {
     const controller = new AbortController();
-    apiClientFor({ role: 'manager' })
+    apiClientFor({ role: 'manager' }, clientOptions)
       .listDealerships(controller.signal)
       .then(setDealerships)
       .catch(() => {
         // If the API is down the page shows its own error. The switcher just offers "Manager".
       });
     return () => controller.abort();
-  }, []);
+  }, [clientOptions]);
 
   return (
     <div className={styles.switcher}>

@@ -79,6 +79,52 @@ command-line script prints the same summary.
                                  └─ computes totals + conversion rate (single source of truth)
 ```
 
+## Live demo
+
+A public copy runs online, so you can try it without installing anything:
+
+- **Page:** link added after the first deploy
+- **API:** link added after the first deploy
+
+Things to know before you try it:
+
+- **You need the access code.** Open the link you were given, which includes
+  the code, or type the code in when the page asks for it. The page then
+  remembers it in that browser, and removes it from the address bar.
+- Anyone with the code can act as a manager and change the data. The
+  **Viewing as** menu is a stand-in for sign-in, and the access code only
+  decides who gets in.
+- The data goes back to the sample data whenever the API restarts. That
+  happens after 15 minutes with no visitors, on every deploy of the API, and
+  now and then at the host's choice.
+- After a quiet spell, the first load takes about a minute while the API
+  wakes up. The page shows its loading state meanwhile.
+- **The summary script and curl work against it too.** Give the summary
+  script the API's address with `--api` and the code with `--access-code`.
+  The script can also read the code from a `DEBONAIRE_ACCESS_CODE`
+  environment variable. With curl, add the header
+  `-H 'Authorization: Bearer <code>'` to any example below.
+
+How it is deployed:
+
+| Part | Host | How |
+|---|---|---|
+| Page | Vercel | Builds `web/` from `main`. `NEXT_PUBLIC_API_URL` points it at the API. `NEXT_PUBLIC_DEMO_MODE=true` shows the demo banner and asks search engines not to list the demo. |
+| API | Render, free plan | Builds the container in [`api/Dockerfile`](api/Dockerfile) from `main`, as [`render.yaml`](render.yaml) describes: PHP 8.5.12 and Apache, with fresh sample data on every start. `DEBONAIRE_ALLOWED_ORIGINS` lets only the Vercel page call it. `DEBONAIRE_ACCESS_CODE` holds the access code, typed into Render's dashboard and never committed. |
+
+Running the project locally doesn't need Docker or either host: follow
+"Install and run" below. To try the API's container on your own machine, if
+you have Docker:
+
+```bash
+docker build -t debonaire-api api
+docker run --rm -p 8080:10000 -e DEBONAIRE_ALLOWED_ORIGINS=http://localhost:3000 debonaire-api
+```
+
+The API is then on `http://127.0.0.1:8080`. The full plan, including how
+the two hosts were set up, is in
+[`docs/deployment-plan.md`](docs/deployment-plan.md).
+
 ## Install and run
 
 ### What you need
@@ -350,6 +396,13 @@ JSON in, JSON out. Every error uses one envelope:
 **Identity (mock):** `X-Debonaire-Role: manager`, or
 `X-Debonaire-Role: dealer` plus `X-Debonaire-Dealership: NGM`. Missing
 identity gives `401`.
+
+**Access code (public demo only):** when the API is started with
+`DEBONAIRE_ACCESS_CODE` set, as the live demo is, every request except
+`GET /api/health` must also send `Authorization: Bearer <code>`. With no
+code, the API returns `401 access_code_required`. With a wrong code, it
+returns `401 invalid_access_code`. A local run sets no code, so none of the
+examples below need one.
 
 ```bash
 curl -s -H 'X-Debonaire-Role: manager' 'http://127.0.0.1:8000/api/returns?from=2026-07&to=2026-07'

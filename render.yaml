@@ -1,0 +1,38 @@
+# Render Blueprint for the Debonaire API's public demo (D18, B15).
+#
+# Render reads this file when you choose New → Blueprint in its dashboard
+# and pick this repository. It describes the API only. The page runs on
+# Vercel. The steps are in docs/deployment-plan.md.
+services:
+  - type: web
+    name: debonaire-api
+    runtime: docker
+    # Free: sleeps after 15 minutes without traffic, and has no lasting disk,
+    # so the container's start script reloads the sample data (D19).
+    plan: free
+    # Render's closest region to the UK. It cannot be changed later.
+    region: frankfurt
+    branch: main
+    # Both paths are relative to the repo root.
+    dockerfilePath: ./api/Dockerfile
+    dockerContext: ./api
+    # Render waits for this to answer 200 before it sends visitors to a new deploy.
+    healthCheckPath: /api/health
+    # Redeploy on every commit to main that touches the API. Changes to the
+    # page alone don't redeploy it, because every redeploy resets the data.
+    autoDeployTrigger: commit
+    buildFilter:
+      paths:
+        - api/**
+    envVars:
+      # The Vercel page's address, with no slash at the end, for example
+      # https://debonaire-dealership.vercel.app. Render asks for it only when
+      # the Blueprint is first created. To change it later, use the service's
+      # Environment tab.
+      - key: DEBONAIRE_ALLOWED_ORIGINS
+        sync: false
+      # The shared access code every request must send (F15, D22). Make a
+      # long random one, for example with `openssl rand -hex 16`, and never
+      # commit it. Render asks for it when the Blueprint is first created.
+      - key: DEBONAIRE_ACCESS_CODE
+        sync: false

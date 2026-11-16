@@ -51,7 +51,7 @@ abstract class ApiTestCase extends TestCase
             // Windows has no workers and runs one process, so there the requests queue
             // up instead. The test still holds: exactly one of them can succeed.
             'PHP_CLI_SERVER_WORKERS' => '4',
-        ];
+        ] + static::extraEnvironment();
         if (PHP_OS_FAMILY === 'Windows') {
             // Windows needs these to start PHP, and they are dropped when $env is given.
             $env += ['SystemRoot' => (string) getenv('SystemRoot'), 'TEMP' => sys_get_temp_dir()];
@@ -90,6 +90,17 @@ abstract class ApiTestCase extends TestCase
             unlink($file);
         }
         @rmdir(self::$tmpDir);
+    }
+
+    /**
+     * Extra environment variables for this test class's server, such as the
+     * public demo's access code (F15). None by default.
+     *
+     * @return array<string, string>
+     */
+    protected static function extraEnvironment(): array
+    {
+        return [];
     }
 
     /**

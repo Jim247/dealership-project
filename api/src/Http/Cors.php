@@ -14,7 +14,8 @@ namespace Debonaire\Api\Http;
  */
 final class Cors
 {
-    private const ALLOWED_HEADERS = 'Content-Type, Idempotency-Key, X-Debonaire-Role, X-Debonaire-Dealership';
+    // Authorization carries the public demo's access code (F15).
+    private const ALLOWED_HEADERS = 'Authorization, Content-Type, Idempotency-Key, X-Debonaire-Role, X-Debonaire-Dealership';
     private const EXPOSED_HEADERS = 'Location, Idempotent-Replayed';
 
     /**

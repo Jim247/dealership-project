@@ -6,11 +6,16 @@
  */
 
 import { ApiError, createApiClient, type ApiClient, type Identity } from '@debonaire/shared';
+import type { AccessCodeClientOptions } from './access';
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:8000';
 
-export function apiClientFor(identity: Identity): ApiClient {
-  return createApiClient({ baseUrl: API_BASE_URL, identity });
+/**
+ * A client acting as `identity`. On the public demo, `access` adds the access
+ * code and reports refusals to the code screen (F15). Without it, no code is sent.
+ */
+export function apiClientFor(identity: Identity, access?: AccessCodeClientOptions): ApiClient {
+  return createApiClient({ baseUrl: API_BASE_URL, identity, ...access });
 }
 
 /** Normalises anything thrown by the client into an ApiError for display. */
