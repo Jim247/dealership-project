@@ -696,6 +696,17 @@ The step-by-step plan is `docs/deployment-plan.md`. These are the rules it follo
 - **Banner.** It shows only when `NEXT_PUBLIC_DEMO_MODE=true`, and a Vitest
   test covers both cases. The same setting asks search engines not to list the
   demo. Local runs and the test suites look exactly as before.
+- **`web/package.json` lists everything the page's build needs (2026-11-16).**
+  - Vercel runs `npm install` inside `web/`, its Root Directory. npm treats
+    that as installing the `web` workspace only, and skips the root's
+    devDependencies.
+  - `next build` type-checks everything `web/tsconfig.json` includes, the
+    tests too. It therefore needs `typescript`, `@types/node` and `vitest`.
+    Those are listed in `web/package.json` as well as at the root.
+  - Without them, Vercel's build failed with "It looks like you're trying to
+    use TypeScript but do not have the required package(s) installed".
+    Locally Next.js installs TypeScript itself, but on a build server
+    (`CI=1`) it refuses.
 - **Local development is unchanged.** Nobody needs Docker to run, test or
   assess the project.
 - **Files.** `api/Dockerfile`, `api/.dockerignore`, `api/docker/` (Apache
