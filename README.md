@@ -83,8 +83,10 @@ command-line script prints the same summary.
 
 A public copy runs online, so you can try it without installing anything:
 
-- **Page:** link added after the first deploy
-- **API:** link added after the first deploy
+- **Page:** <https://debonaire-dealership.vercel.app>
+- **API:** <https://debonaire-api.onrender.com>. Its health check,
+  [`/api/health`](https://debonaire-api.onrender.com/api/health), is the only
+  endpoint that needs no access code.
 
 Things to know before you try it:
 
