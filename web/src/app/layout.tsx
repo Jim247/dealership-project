@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { Open_Sans } from 'next/font/google';
 import type { ReactNode } from 'react';
+import { DemoBanner } from '@/components/DemoBanner';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
+import { DEMO_MODE } from '@/lib/demo';
 import { IdentityProvider } from '@/lib/identity';
 import './globals.css';
 
@@ -12,6 +14,8 @@ const openSans = Open_Sans({ subsets: ['latin'], variable: '--font-body', displa
 export const metadata: Metadata = {
   title: 'Dealership returns | Debonaire',
   description: 'Submit and review monthly dealership enquiries and sales.',
+  // The public demo asks search engines not to list it (B15).
+  ...(DEMO_MODE ? { robots: { index: false, follow: false } } : {}),
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -19,6 +23,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en-GB" className={openSans.variable}>
       <body>
         <IdentityProvider>
+          <DemoBanner />
           <SiteHeader />
           {children}
           <SiteFooter />
