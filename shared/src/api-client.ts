@@ -5,7 +5,8 @@
  * message, per-field messages), or code "network_error" when the API could
  * not be reached. Callers handle one error type.
  *
- * Features: F2 submit, F3 retrieve, F7 idempotency key, F8 corrections, F9 mock identity headers.
+ * Features: F2 submit, F3 retrieve, F7 idempotency key, F8 corrections, F9 mock identity headers,
+ * F15 the public demo's access code.
  */
 
 import type {
@@ -37,11 +38,23 @@ export class ApiError extends Error {
   get isNetworkError(): boolean {
     return this.status === 0;
   }
+
+  /** True when the API refused the request for a missing or wrong access code (F15). */
+  get isAccessCodeError(): boolean {
+    return this.code === 'access_code_required' || this.code === 'invalid_access_code';
+  }
 }
 
 export interface ApiClientOptions {
   baseUrl: string;
   identity: Identity;
+  /**
+   * The public demo's shared access code (F15), sent as `Authorization: Bearer`.
+   * Leave it out for an API that needs none, such as a local run.
+   */
+  accessCode?: string | null;
+  /** Called, before the error is thrown, when the API refuses the access code. */
+  onAccessCodeRejected?: (error: ApiError) => void;
   /** Injected in tests. Defaults to the global fetch. */
   fetch?: typeof fetch;
 }
@@ -54,7 +67,13 @@ export interface SubmitOutcome {
 
 export type ApiClient = ReturnType<typeof createApiClient>;
 
-export function createApiClient({ baseUrl, identity, fetch: fetchImpl }: ApiClientOptions) {
+export function createApiClient({
+  baseUrl,
+  identity,
+  accessCode,
+  onAccessCodeRejected,
+  fetch: fetchImpl,
+}: ApiClientOptions) {
   // Wrap the global so it is never called detached (browsers throw "Illegal invocation").
   const doFetch: typeof fetch = fetchImpl ?? ((input, init) => globalThis.fetch(input, init));
   const root = baseUrl.replace(/\/+$/, '');
@@ -69,6 +88,8 @@ export function createApiClient({ baseUrl, identity, fetch: fetchImpl }: ApiClie
       Accept: 'application/json',
       'X-Debonaire-Role': identity.role,
       ...(identity.role === 'dealer' ? { 'X-Debonaire-Dealership': identity.dealershipId } : {}),
+      // F15: the public demo's gate. It is not who the caller is; that is the role above.
+      ...(accessCode ? { Authorization: `Bearer ${accessCode}` } : {}),
       ...options.headers,
     };
     if (options.body !== undefined) {
@@ -95,13 +116,17 @@ export function createApiClient({ baseUrl, identity, fetch: fetchImpl }: ApiClie
 
     if (!response.ok) {
       const envelope = (body as Partial<ApiErrorBody> | null)?.error;
-      throw new ApiError(
+      const error = new ApiError(
         response.status,
         envelope?.code ?? 'http_error',
         envelope?.message ?? `The API responded with HTTP ${response.status}.`,
         envelope?.fields ?? {},
         envelope?.existing,
       );
+      if (error.isAccessCodeError) {
+        onAccessCodeRejected?.(error);
+      }
+      throw error;
     }
 
     return { body: body as T, response };
