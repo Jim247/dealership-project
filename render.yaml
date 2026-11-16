@@ -31,3 +31,8 @@ services:
       # Environment tab.
       - key: DEBONAIRE_ALLOWED_ORIGINS
         sync: false
+      # The shared access code every request must send (F15, D22). Make a
+      # long random one, for example with `openssl rand -hex 16`, and never
+      # commit it. Render asks for it when the Blueprint is first created.
+      - key: DEBONAIRE_ACCESS_CODE
+        sync: false

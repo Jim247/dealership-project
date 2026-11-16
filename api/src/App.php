@@ -18,6 +18,7 @@ use Debonaire\Api\Domain\FixedClock;
 use Debonaire\Api\Domain\ReportCalculator;
 use Debonaire\Api\Domain\ReturnValidator;
 use Debonaire\Api\Domain\SystemClock;
+use Debonaire\Api\Http\AccessCode;
 use Debonaire\Api\Http\Cors;
 use Debonaire\Api\Http\HttpError;
 use Debonaire\Api\Http\JsonResponse;
@@ -40,12 +41,18 @@ use Throwable;
  *   DEBONAIRE_ALLOWED_ORIGINS  comma-separated CORS origins
  *                              (default: http://localhost:3000,http://127.0.0.1:3000)
  *   DEBONAIRE_FIXED_NOW        freeze the clock, e.g. "2026-11-15T12:00:00Z" (tests only)
+ *   DEBONAIRE_ACCESS_CODE      require this code on every request (F15, the public demo).
+ *                              Unset means no code is needed.
  */
 final class App
 {
+    /** The one endpoint that never needs the access code: the host's health check sends none. */
+    private const HEALTH_PATH = '/api/health';
+
     private function __construct(
         private readonly Router $router,
         private readonly Cors $cors,
+        private readonly AccessCode $accessCode,
     ) {
     }
 
@@ -64,7 +71,7 @@ final class App
             explode(',', self::env('DEBONAIRE_ALLOWED_ORIGINS') ?? 'http://localhost:3000,http://127.0.0.1:3000'),
         )));
 
-        return self::build($db, $clock, $origins);
+        return self::build($db, $clock, $origins, self::env('DEBONAIRE_ACCESS_CODE'));
     }
 
     /**
@@ -72,8 +79,9 @@ final class App
      * would add indirection without adding clarity.
      *
      * @param list<string> $allowedOrigins
+     * @param string|null  $accessCode     the code every request must send, or null for none (F15)
      */
-    public static function build(Database $db, Clock $clock, array $allowedOrigins): self
+    public static function build(Database $db, Clock $clock, array $allowedOrigins, ?string $accessCode = null): self
     {
         $dealerships = new DealershipRepository($db);
         $policy = new AccessPolicy();
@@ -94,7 +102,7 @@ final class App
         $dealershipsController = new DealershipsController($dealerships, $policy, $identity);
 
         $router = (new Router())
-            ->add('GET', '/api/health', static fn (): JsonResponse => JsonResponse::ok(['status' => 'ok']))
+            ->add('GET', self::HEALTH_PATH, static fn (): JsonResponse => JsonResponse::ok(['status' => 'ok']))
             ->add('GET', '/api/dealerships', $dealershipsController->list(...))
             ->add('GET', '/api/returns', $returns->list(...))
             ->add('POST', '/api/returns', $returns->create(...))
@@ -102,7 +110,7 @@ final class App
             ->add('PUT', '/api/returns/{id}', $returns->correct(...))
             ->add('GET', '/api/returns/{id}/audit', $returns->audit(...));
 
-        return new self($router, new Cors($allowedOrigins));
+        return new self($router, new Cors($allowedOrigins), new AccessCode($accessCode));
     }
 
     /**
@@ -115,6 +123,11 @@ final class App
         }
 
         try {
+            // F15: on the public demo, nothing but the health check works without
+            // the access code, not even a 404. It runs before routing and identity.
+            if ($request->path !== self::HEALTH_PATH) {
+                $this->accessCode->check($request);
+            }
             $response = $this->router->dispatch($request);
         } catch (Throwable $e) {
             $response = $this->errorResponse($e);
