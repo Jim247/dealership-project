@@ -79,6 +79,45 @@ command-line script prints the same summary.
                                  └─ computes totals + conversion rate (single source of truth)
 ```
 
+## Live demo
+
+A public copy runs online, so you can try it without installing anything:
+
+- **Page:** link added after the first deploy
+- **API:** link added after the first deploy
+
+Things to know before you try it:
+
+- Anyone can use it. The **Viewing as** menu is a stand-in for sign-in, so
+  any visitor can act as a manager and change the data.
+- The data goes back to the sample data whenever the API restarts. That
+  happens after 15 minutes with no visitors, on every deploy of the API, and
+  now and then at the host's choice.
+- After a quiet spell, the first load takes about a minute while the API
+  wakes up. The page shows its loading state meanwhile.
+- The summary script works against it too: add `--api` and the API's address
+  to any `npm run summary` command.
+
+How it is deployed:
+
+| Part | Host | How |
+|---|---|---|
+| Page | Vercel | Builds `web/` from `main`. `NEXT_PUBLIC_API_URL` points it at the API. `NEXT_PUBLIC_DEMO_MODE=true` shows the demo banner and asks search engines not to list the demo. |
+| API | Render, free plan | Builds the container in [`api/Dockerfile`](api/Dockerfile) from `main`, as [`render.yaml`](render.yaml) describes: PHP 8.5.12 and Apache, with fresh sample data on every start. `DEBONAIRE_ALLOWED_ORIGINS` lets only the Vercel page call it. |
+
+Running the project locally doesn't need Docker or either host: follow
+"Install and run" below. To try the API's container on your own machine, if
+you have Docker:
+
+```bash
+docker build -t debonaire-api api
+docker run --rm -p 8080:10000 -e DEBONAIRE_ALLOWED_ORIGINS=http://localhost:3000 debonaire-api
+```
+
+The API is then on `http://127.0.0.1:8080`. The full plan, including how
+the two hosts were set up, is in
+[`docs/deployment-plan.md`](docs/deployment-plan.md).
+
 ## Install and run
 
 ### What you need
