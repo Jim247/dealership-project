@@ -29,7 +29,7 @@ describe('DemoBanner', () => {
     render(<DemoBanner enabled />);
     const banner = screen.getByRole('complementary', { name: 'About this demo' });
     expect(banner).toHaveTextContent('Public demo with made-up dealerships.');
-    expect(banner).toHaveTextContent('anyone can switch to manager');
+    expect(banner).toHaveTextContent('anyone with the access code can switch to manager');
     expect(banner).toHaveTextContent('The data goes back to the sample data');
     expect(banner).toHaveTextContent('up to a minute');
   });

@@ -13,6 +13,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ApiClient, Dealership, Identity } from '@debonaire/shared';
+import { useAccessCode } from '@/lib/access';
 import { apiClientFor, toApiError } from '@/lib/api';
 import { identityKey, useIdentity } from '@/lib/identity';
 import { ReturnForm } from './ReturnForm';
@@ -20,7 +21,9 @@ import { ReturnsPanel } from './ReturnsPanel';
 
 export function Dashboard() {
   const { identity } = useIdentity();
-  const client = useMemo(() => apiClientFor(identity), [identity]);
+  // F15: on the public demo every request carries the access code.
+  const { clientOptions } = useAccessCode();
+  const client = useMemo(() => apiClientFor(identity, clientOptions), [identity, clientOptions]);
 
   return <DashboardContent key={identityKey(identity)} client={client} identity={identity} />;
 }
