@@ -309,3 +309,6 @@ A few things went differently from the plan:
     page reaches the API and reads its reply.
 
   James checks the real code himself.
+- **Afterwards, James removed the demo banner** (step 3), and the footer's
+  "Identity switching is a demo stand-in" line. Demo mode still asks for the
+  access code and keeps the demo out of search engines (bible B15).

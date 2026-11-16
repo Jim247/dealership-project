@@ -111,7 +111,7 @@ How it is deployed:
 
 | Part | Host | How |
 |---|---|---|
-| Page | Vercel | Builds `web/` from `main`. `NEXT_PUBLIC_API_URL` points it at the API. `NEXT_PUBLIC_DEMO_MODE=true` shows the demo banner and asks search engines not to list the demo. |
+| Page | Vercel | Builds `web/` from `main`. `NEXT_PUBLIC_API_URL` points it at the API. `NEXT_PUBLIC_DEMO_MODE=true` makes the page ask for the access code straight away, and asks search engines not to list the demo. |
 | API | Render, free plan | Builds the container in [`api/Dockerfile`](api/Dockerfile) from `main`, as [`render.yaml`](render.yaml) describes: PHP 8.5.12 and Apache, with fresh sample data on every start. `DEBONAIRE_ALLOWED_ORIGINS` lets only the Vercel page call it. `DEBONAIRE_ACCESS_CODE` holds the access code, typed into Render's dashboard and never committed. |
 
 Running the project locally doesn't need Docker or either host: follow
