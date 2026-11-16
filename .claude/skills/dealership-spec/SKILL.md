@@ -656,9 +656,10 @@ The step-by-step plan is `docs/deployment-plan.md`. These are the rules it follo
   `PORT` (Render's default is 10000).
   The container never uses `php -S`, which PHP documents as unsuitable for
   public use.
-- **Start.** The container runs `php database/seed.php --fresh` as the web
-  server user (`www-data`), so SQLite can write the file and its WAL files,
-  and then starts Apache. Every start gives the sample data.
+- **Start.** The container runs `php database/seed.php --fresh`. It then
+  gives the database folder to the web server user (`www-data`), so PHP under
+  Apache can write the file and its WAL files, and starts Apache. Every start
+  gives the sample data.
 - **Settings.** Render holds `DEBONAIRE_ALLOWED_ORIGINS`, set to the Vercel
   production address only. Vercel holds `NEXT_PUBLIC_API_URL` (the Render
   address) and `NEXT_PUBLIC_DEMO_MODE=true`. `NEXT_PUBLIC_` values are fixed
@@ -669,7 +670,9 @@ The step-by-step plan is `docs/deployment-plan.md`. These are the rules it follo
 - **Local development is unchanged.** Nobody needs Docker to run, test or
   assess the project.
 - **Files.** `api/Dockerfile`, `api/.dockerignore`, `api/docker/` (Apache
-  config and start script) and `render.yaml` at the repo root. The README has
+  config, PHP overrides and the start script) and `render.yaml` at the repo
+  root. `.gitattributes` keeps `*.sh` files LF, because a Linux container
+  cannot run a script with Windows line endings. The README has
   a "Live demo" section in the AI notes part. James's message is not touched.
 - **Accepted limits.**
   - Render's free plan sleeps after 15 minutes without traffic and takes

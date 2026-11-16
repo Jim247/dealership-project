@@ -1,0 +1,12 @@
+# Kept out of the public demo image (B15). The image installs its own
+# production packages and creates a fresh database when it starts.
+vendor/
+var/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+tests/
+.phpunit.cache/
+phpunit.xml
+Dockerfile
+.dockerignore

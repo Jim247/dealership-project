@@ -74,11 +74,19 @@ I'll add these files under `api/`:
   PHP's built-in server isn't used in the container, because PHP documents it
   as unsuitable for public use.
 - **`docker/start.sh`**, which runs when the container starts. It loads fresh
-  sample data with `php database/seed.php --fresh`, then starts Apache. The
-  seed runs as `www-data`, the user Apache runs PHP as, because SQLite must be
-  able to write both the database file and the folder it sits in.
+  sample data with `php database/seed.php --fresh`, then starts Apache. In
+  between, it gives the database folder to `www-data`, the user Apache runs
+  PHP as, because SQLite must be able to write both the database file and the
+  folder it sits in.
+- **`docker/php.ini`**, a few PHP settings on top of PHP's own production
+  settings. Errors go to the log, never into a response, and PHP's version
+  is left out of the headers.
 - **`.dockerignore`**, which keeps `vendor`, `var`, the tests and any local
   database out of the container.
+
+At the repo root, a `.gitattributes` file keeps `.sh` files with Linux line
+endings even on a Windows checkout. A Linux container can't run a script
+with Windows line endings.
 
 ### Step 2. Try the container on this Mac (me)
 
