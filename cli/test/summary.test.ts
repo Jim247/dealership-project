@@ -140,6 +140,40 @@ describe('runSummary', () => {
     expect(result.stderr).toContain('to: Bad.');
   });
 
+  it('sends the access code to the public demo API (F15)', async () => {
+    const fetch = fakeApi(july);
+
+    await run(['--month', '2026-07', '--access-code', 'abc123'], fetch);
+
+    const [, init] = fetch.mock.calls.at(-1)! as unknown as [string, RequestInit];
+    expect(init.headers).toMatchObject({ Authorization: 'Bearer abc123' });
+  });
+
+  it('says how to send the access code when the API asks for one', async () => {
+    const refused = Response.json(
+      { error: { code: 'access_code_required', message: 'This demo needs an access code.' } },
+      { status: 401 },
+    );
+
+    const result = await run(['--month', '2026-07'], fakeApi(refused));
+
+    expect(result.code).toBe(ExitCode.ApiError);
+    expect(result.stderr).toContain('API responded 401 (access_code_required)');
+    expect(result.stderr).toContain('Pass --access-code CODE, or set DEBONAIRE_ACCESS_CODE.');
+  });
+
+  it('says the code was refused when it is wrong', async () => {
+    const refused = Response.json(
+      { error: { code: 'invalid_access_code', message: 'That access code is not valid.' } },
+      { status: 401 },
+    );
+
+    const result = await run(['--month', '2026-07', '--access-code', 'old'], fakeApi(refused));
+
+    expect(result.code).toBe(ExitCode.ApiError);
+    expect(result.stderr).toContain('The access code was refused.');
+  });
+
   it('exits 2 with usage for invalid arguments, without calling the API', async () => {
     const fetch = fakeApi(july);
 

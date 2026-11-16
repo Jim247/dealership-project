@@ -23,11 +23,14 @@ Options:
   --month YYYY-MM       a single month (shortcut for --from M --to M)
   --dealership ID       one dealership only, e.g. NGM
   --api URL             API base URL (default: $DEBONAIRE_API_URL or ${DEFAULT_API_URL})
+  --access-code CODE    the public demo's access code (default: $DEBONAIRE_ACCESS_CODE).
+                        A local API needs none.
   -h, --help            show this help
 
 Examples:
   npm run summary -- --from 2026-06 --to 2026-10
   npm run summary -- --month 2026-08 --dealership NGM
+  npm run summary -- --api https://example.onrender.com --access-code YOUR-CODE
 
 Exit codes: 0 ok, 1 API error, 2 invalid arguments, 3 totals mismatch.`;
 
@@ -36,6 +39,8 @@ export interface SummaryOptions {
   to: string | null;
   dealershipId: string | null;
   apiUrl: string;
+  /** The public demo's access code (F15), or null for an API that needs none. */
+  accessCode: string | null;
 }
 
 export type ParsedArgs =
@@ -56,6 +61,7 @@ export function parseSummaryArgs(argv: string[], env: Record<string, string | un
         month: { type: 'string' },
         dealership: { type: 'string' },
         api: { type: 'string' },
+        'access-code': { type: 'string' },
         help: { type: 'boolean', short: 'h' },
       },
     }));
@@ -91,6 +97,12 @@ export function parseSummaryArgs(argv: string[], env: Record<string, string | un
     return { kind: 'error', message: '--dealership needs a dealership id, e.g. NGM.' };
   }
 
+  const flagCode = values['access-code']?.trim();
+  if (flagCode === '') {
+    return { kind: 'error', message: '--access-code needs the code you were given.' };
+  }
+  const accessCode = flagCode ?? (env.DEBONAIRE_ACCESS_CODE?.trim() || null);
+
   return {
     kind: 'run',
     options: {
@@ -98,6 +110,7 @@ export function parseSummaryArgs(argv: string[], env: Record<string, string | un
       to,
       dealershipId,
       apiUrl: values.api ?? env.DEBONAIRE_API_URL ?? DEFAULT_API_URL,
+      accessCode,
     },
   };
 }

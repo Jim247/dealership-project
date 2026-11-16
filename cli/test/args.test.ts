@@ -8,7 +8,25 @@ describe('parseSummaryArgs', () => {
   it('accepts an inclusive from/to period', () => {
     expect(parseSummaryArgs(['--from', '2026-06', '--to', '2026-10'])).toEqual({
       kind: 'run',
-      options: { from: '2026-06', to: '2026-10', dealershipId: null, apiUrl: DEFAULT_API_URL },
+      options: { from: '2026-06', to: '2026-10', dealershipId: null, apiUrl: DEFAULT_API_URL, accessCode: null },
+    });
+  });
+
+  it('takes the access code from --access-code, or from DEBONAIRE_ACCESS_CODE (F15)', () => {
+    expect(parseSummaryArgs(['--access-code', 'abc123'])).toMatchObject({ options: { accessCode: 'abc123' } });
+    expect(parseSummaryArgs([], { DEBONAIRE_ACCESS_CODE: 'from-env' })).toMatchObject({
+      options: { accessCode: 'from-env' },
+    });
+    expect(parseSummaryArgs(['--access-code', 'flag'], { DEBONAIRE_ACCESS_CODE: 'env' })).toMatchObject({
+      options: { accessCode: 'flag' },
+    });
+    expect(parseSummaryArgs([], { DEBONAIRE_ACCESS_CODE: '' })).toMatchObject({ options: { accessCode: null } });
+  });
+
+  it('rejects an empty --access-code', () => {
+    expect(parseSummaryArgs(['--access-code', ' '])).toEqual({
+      kind: 'error',
+      message: '--access-code needs the code you were given.',
     });
   });
 

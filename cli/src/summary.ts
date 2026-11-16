@@ -60,7 +60,12 @@ export async function runSummary(argv: string[], io: SummaryIo): Promise<number>
   const { options } = parsed;
   // The summary is a management report, so it reads as a manager.
   // MOCK AUTH (F9): production would use a service account or token.
-  const client = createApiClient({ baseUrl: options.apiUrl, identity: { role: 'manager' }, fetch: io.fetch });
+  const client = createApiClient({
+    baseUrl: options.apiUrl,
+    identity: { role: 'manager' },
+    accessCode: options.accessCode,
+    fetch: io.fetch,
+  });
 
   try {
     let dealershipLabel = 'All';
@@ -133,6 +138,12 @@ function describeError(error: unknown, apiUrl: string): string {
     }
 
     const details = Object.entries(error.fields).map(([field, message]) => `\n  ${field}: ${message}`);
+    // F15: say how to send the public demo's access code, not just that it was refused.
+    if (error.code === 'access_code_required') {
+      details.push('\n  This API needs an access code. Pass --access-code CODE, or set DEBONAIRE_ACCESS_CODE.');
+    } else if (error.code === 'invalid_access_code') {
+      details.push('\n  The access code was refused. Check it, or ask for the current one.');
+    }
     return `Error: API responded ${error.status} (${error.code}): ${error.message}${details.join('')}`;
   }
 
