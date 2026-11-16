@@ -134,8 +134,9 @@ prepared to explain how you would handle them.
 | D17 | Comments | Clear comments that name the feature, **especially in PHP** (see B10). |
 | D18 | Public demo (2026-11-16) | The page goes on **Vercel** (project root `web`). The API goes on **Render's free plan** as a Docker container built from the official PHP 8.5 Apache image (a patched release, 8.5.12 or later). Both use their free default addresses. See B15. |
 | D19 | Demo data | The API container reseeds from scratch (`seed.php --fresh`) every time it starts, so the public data always returns to the sample data. There is no lasting disk. |
-| D20 | Demo visitors | Visitors can do everything: submit, correct and switch role. A banner, shown only when `NEXT_PUBLIC_DEMO_MODE=true`, says it is a demo, that the identity is a stand-in and that the data resets. There is no extra abuse protection: the resets and the existing validation are enough for a demo. |
+| D20 | Demo visitors | Visitors with the access code (D22) can do everything: submit, correct and switch role. A banner, shown only when `NEXT_PUBLIC_DEMO_MODE=true`, says it is a demo, that the identity is a stand-in and that the data resets. There is no extra abuse protection: the resets and the existing validation are enough for a demo. |
 | D21 | Deploy workflow | Work happens on a branch. Claude pushes it only when James asks, and James merges the pull request on GitHub. Render and Vercel deploy from `main`. Claude creates the Vercel project through the Vercel connector and asks before the first production deploy. James sets Render up in its dashboard from `render.yaml`. |
+| D22 | Access code (2026-11-16) | The public API requires **one shared access code**, so James can choose who uses the demo. Render holds it in `DEBONAIRE_ACCESS_CODE`, and clients send it as `Authorization: Bearer <code>`. When the variable is unset (local runs, every test suite) nothing is checked. The page stays public but asks for the code. A share link, `/?code=…`, saves the code in that browser and removes it from the address bar. The summary script takes `--access-code` or the same variable. Feature F15, details in B15. |
 
 ### B2. Repository layout
 
@@ -195,6 +196,7 @@ these IDs so an assessor can trace a requirement from spec, to code, to test.
 | F12 | CLI summary with period args + server cross-check | §3.4 | cli |
 | F13 | Shared conversion-rate formula + parity fixtures | §4 | shared |
 | F14 | README handover | §3.5 | docs |
+| F15 | Shared access code for the public demo (D22) | §4 access | api + web + cli |
 
 ### B4. Business rules (authoritative)
 
@@ -363,6 +365,14 @@ CORS allows `http://localhost:3000` and `http://127.0.0.1:3000` (override with
 | `PUT /api/returns/{id}` body `{enquiries, sales, reason}` | `200 {"data":Return}` | 400, 401, 403, 404, 422 |
 | `GET /api/returns/{id}/audit` | `200 {"data":[AuditEntry]}` | 401, 403, 404 |
 | anything else | — | `404 not_found` / `405 method_not_allowed` |
+
+**Access code (F15, D22).** When `DEBONAIRE_ACCESS_CODE` is set, every
+request except `GET /api/health` and CORS preflights must send
+`Authorization: Bearer <code>`. The check runs before routing and identity.
+With no header, or one that is not `Bearer`, the response is
+`401 access_code_required`. With a wrong code, it is `401 invalid_access_code`.
+Both carry a `WWW-Authenticate: Bearer` header. CORS allows the
+`Authorization` header.
 
 ```ts
 type Return = { id: number; dealershipId: string; dealershipName: string; month: string;
@@ -664,6 +674,25 @@ The step-by-step plan is `docs/deployment-plan.md`. These are the rules it follo
   production address only. Vercel holds `NEXT_PUBLIC_API_URL` (the Render
   address) and `NEXT_PUBLIC_DEMO_MODE=true`. `NEXT_PUBLIC_` values are fixed
   when the page is built, so changing one needs a redeploy.
+- **Access code (F15, D22).**
+  - **API.** `Http\AccessCode` compares the code with `hash_equals`, so the
+    comparison time gives nothing away. `GET /api/health` stays open,
+    because Render's health check sends no code. Apache keeps
+    `Authorization` from PHP unless `CGIPassAuth On` is set, so the container
+    sets it. If that setting is lost, the API fails closed: every request gets
+    a 401.
+  - **Page.** In demo mode, a visitor with no saved code sees an "Enter
+    access code" screen in place of the header controls and the dashboard.
+    Any `access_code_required` or `invalid_access_code` response brings that
+    screen back, with a message for a wrong code. The code is kept in
+    `localStorage` (`debonaire.accessCode`), like the demo identity. Opening
+    `/?code=…` saves the code and removes it from the address bar with
+    `history.replaceState`.
+  - **Summary script.** It sends the code from `--access-code`, or from the
+    `DEBONAIRE_ACCESS_CODE` environment variable.
+  - **The code itself.** It is never committed. James types it into Render's
+    dashboard. It should be long, random and safe in a link, for example the
+    output of `openssl rand -hex 16`.
 - **Banner.** It shows only when `NEXT_PUBLIC_DEMO_MODE=true`, and a Vitest
   test covers both cases. The same setting asks search engines not to list the
   demo. Local runs and the test suites look exactly as before.

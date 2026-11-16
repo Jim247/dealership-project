@@ -21,6 +21,8 @@ B15). If this file and the bible disagree, the bible wins.
 |---|---|
 | Where the API runs | Render's free plan, in a Docker container |
 | What happens to data | It goes back to the sample data every time the API starts |
+| Who can use it | Only people with the access code. There is one shared code, which the API checks on every request |
+| How people get in | A share link with the code in it, or by typing the code into the page |
 | What visitors can do | Everything (submit, correct, switch role), with a banner saying it is a demo |
 | Where the banner shows | Only on the public copy, switched on by a Vercel setting |
 | Web addresses | The free defaults (`….vercel.app` and `….onrender.com`) |
@@ -179,12 +181,18 @@ before doing it.
    Render read `render.yaml`.
 3. When it asks for `DEBONAIRE_ALLOWED_ORIGINS`, paste the Vercel address
    from step 6, with no slash at the end.
-4. Wait for the first build (a few minutes), then send me the service's
-   address, for example `https://debonaire-api.onrender.com`.
+4. When it asks for `DEBONAIRE_ACCESS_CODE`, paste a long random code. On a
+   Mac, `openssl rand -hex 16` prints one. Keep it somewhere safe, such as a
+   password manager, and never commit it. Anyone with the code can use the
+   demo.
+5. Wait for the first build (a few minutes), then send me the service's
+   address, for example `https://debonaire-api.onrender.com`. Don't send me
+   the access code. I'll test with a code of my own on this Mac, and you can
+   check the live one yourself.
 
-Render asks for that setting only the first time. If the Vercel address ever
-changes, update it under the service's **Environment** tab, and Render
-redeploys.
+Render asks for these settings only the first time. To change one later,
+for example to switch to a new access code, use the service's
+**Environment** tab, and Render redeploys.
 
 ### Step 8. Deploy the page (me, after you say go)
 
@@ -239,9 +247,23 @@ on 16 November 2026:
 
 ## Things to know
 
-- **Anyone can act as a manager.** The role switcher is a stand-in for
-  sign-in, so any visitor can submit and correct. The banner says so, and
-  every reset wipes their changes.
+- **Sharing it.** Send people
+  `https://<the Vercel address>/?code=<the access code>`. Opening the link
+  saves the code in their browser and removes it from the address bar, so it
+  isn't left showing on screen. Someone given just the address sees an
+  "Enter access code" screen. For curl, send the header
+  `Authorization: Bearer <the code>`. For the summary script, add
+  `--access-code <the code>`.
+- **Changing the code** locks out everyone who has the old one, because there
+  is a single shared code. Set the new one in Render's **Environment** tab
+  and send people the new link. A browser with the old code saved shows the
+  access code screen again, with a message that the code isn't valid.
+- **Anyone with the code can act as a manager.** The role switcher is a
+  stand-in for sign-in, so any visitor with the code can submit and correct.
+  The banner says so, and every reset wipes their changes.
+- **The code is a gate, not a login.** It keeps strangers out of the demo,
+  but it doesn't say who anyone is. A long random code can't realistically
+  be guessed, so there is no limit on wrong attempts.
 - **Only the production address works.** Vercel builds a preview copy for
   every branch, at its own address. The API only allows the production
   address, so previews show "the reporting service is not responding". Add a
